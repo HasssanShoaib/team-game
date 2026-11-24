@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Incident Commander – Team Simulation</title>
+<style>
+  :root{--blue:#0D54FF;--navy:#001E82;--pink:#E5007D;--purple:#7B2CBF;--green:#00A870;--amber:#F5A623;--red:#E0243A;--ink:#141B2D;--muted:#5B6478;--line:#E3E8F2;--bg:#F5F7FC}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  header{background:linear-gradient(90deg,var(--navy),var(--blue) 60%,var(--pink));color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+  header h1{margin:0;font-size:20px;letter-spacing:.3px}
+  header .tag{font-size:13px;opacity:.9}
+  main{max-width:1180px;margin:0 auto;padding:24px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(13,84,255,.05)}
+  .grid{display:grid;gap:18px}
+  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:2fr 1fr}
+  @media(max-width:860px){.g2,.g3{grid-template-columns:1fr}}
+  h2{margin:0 0 8px;font-size:22px} h3{margin:0 0 10px;font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+  input{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:16px;margin:6px 0 12px}
+  input:focus{outline:none;border-color:var(--blue)}
+  button{cursor:pointer;border:0;border-radius:10px;padding:12px 18px;font-size:15px;font-weight:600;background:var(--blue);color:#fff;transition:.15s}
+  button:hover{filter:brightness(1.08);transform:translateY(-1px)} button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  button.pink{background:var(--pink)} button.ghost{background:#fff;color:var(--blue);border:1.5px solid var(--blue)}
+  .err{color:var(--red);font-size:14px;min-height:18px}
+  .code{font-size:56px;font-weight:800;letter-spacing:10px;color:var(--blue);margin:6px 0}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{padding:6px 12px;border-radius:999px;background:#EEF3FF;color:var(--navy);font-size:14px;font-weight:600;animation:pop .3s}
+  .chip.done{background:var(--green);color:#fff}
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  .muted{color:var(--muted)}
+  .scen-time{display:inline-block;background:var(--pink);color:#fff;font-weight:700;font-size:13px;padding:4px 10px;border-radius:6px}
+  .scen-title{font-size:28px;font-weight:800;margin:10px 0 6px}
+  .scen-text{font-size:18px;line-height:1.5}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  @media(max-width:640px){.opts{grid-template-columns:1fr}}
+  .opt{display:flex;gap:12px;align-items:flex-start;text-align:left;background:#fff;color:var(--ink);border:2px solid var(--line);font-weight:500;padding:14px;line-height:1.35;font-size:16px}
+  .opt .k{flex:0 0 32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:800}
+  .opt.sel{border-color:var(--blue);background:#EEF3FF}
+  .opt.best{border-color:var(--green);background:#E8F8F1}
+  .k0{background:var(--blue)}.k1{background:var(--pink)}.k2{background:var(--purple)}.k3{background:var(--amber)}
+  .timer{display:flex;align-items:center;gap:12px}
+  .tbar{flex:1;height:10px;background:var(--line);border-radius:6px;overflow:hidden}
+  .tbar>div{height:100%;background:linear-gradient(90deg,var(--blue),var(--pink));transition:width .25s linear}
+  .tnum{font-weight:800;font-size:22px;min-width:48px;text-align:right}
+  .metric{margin-bottom:12px}
+  .metric .lbl{display:flex;justify-content:space-between;font-weight:600;font-size:14px;margin-bottom:4px}
+  .mbar{height:12px;background:var(--line);border-radius:6px;overflow:hidden}
+  .mbar>div{height:100%;border-radius:6px;transition:width .8s ease}
+  .delta{font-weight:800;font-size:13px;margin-left:6px}.up{color:var(--green)}.down{color:var(--red)}
+  .bars .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .bars .row .b{flex:1;height:26px;background:var(--line);border-radius:6px;overflow:hidden}
+  .bars .row .b>div{height:100%;transition:width .8s ease}
+  .lesson{margin-top:14px;padding:14px 16px;border-left:5px solid var(--green);background:#F0FBF6;border-radius:8px;font-size:16px}
+  table{width:100%;border-collapse:collapse} td{padding:8px 6px;border-bottom:1px solid var(--line);font-size:15px}
+  tr:nth-child(1) td:first-child::before{content:"🥇 "} tr:nth-child(2) td:first-child::before{content:"🥈 "} tr:nth-child(3) td:first-child::before{content:"🥉 "}
+  .big{font-size:44px;font-weight:800;color:var(--blue)}
+  .center{text-align:center}
+  .row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;background:#EEF3FF;color:var(--navy);font-size:13px;font-weight:600}
+  .podium{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin:20px 0}
+  .pod{width:150px;text-align:center}.pod .blk{border-radius:10px 10px 0 0;color:#fff;font-weight:800;font-size:28px;display:grid;place-items:center}
+  .confetti{position:fixed;top:-10px;width:10px;height:14px;animation:fall linear forwards;z-index:9}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<header><h1>🚨 Incident Commander</h1><span class="tag" id="hdr">A live team simulation</span></header>
+<main id="app"></main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LETTERS = ['A','B','C','D'];
+const COLORS = ['var(--blue)','var(--pink)','var(--purple)','var(--amber)'];
+const MET = {uptime:['⚡ Uptime','var(--blue)'],trust:['🤝 Stakeholder trust','var(--pink)'],budget:['💰 Budget','var(--green)'],morale:['💙 Team morale','var(--purple)']};
+let S = null, es = null, tick = null, skew = 0, lastPhaseKey = '';
+const sess = JSON.parse(sessionStorage.getItem('ic') || '{}');
+const save = () => sessionStorage.setItem('ic', JSON.stringify(sess));
+
+async function api(path, data){
+  const r = await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data||{})});
+  const j = await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'Something went wrong'); return j;
+}
+
+// ---------- Landing ----------
+function landing(msg){
+  const pre = new URLSearchParams(location.search).get('room') || '';
+  $('#app').innerHTML = `
+  <div class="grid g2">
+    <div class="card">
+      <h2>Join the game</h2>
+      <p class="muted">Enter the room code your host shared.</p>
+      <label>Your name</label><input id="nm" maxlength="24" placeholder="e.g. Faizur R" value="${esc(sess.name||'')}">
+      <label>Room code</label><input id="rc" maxlength="5" placeholder="ABCDE" style="text-transform:uppercase;letter-spacing:4px" value="${esc(pre)}">
+      <div class="err" id="jerr">${esc(msg||'')}</div>
+      <button class="pink" id="jbtn" style="width:100%">Join ➜</button>
+    </div>
+    <div class="card">
+      <h2>Host a game</h2>
+      <p class="muted">Create a room, share the code, and screen-share this view in Teams. Your team plays from their own laptops or phones.</p>
+      <ul class="muted" style="line-height:1.8">
+        <li>8 crisis scenarios from a week in the life of a tech team</li>
+        <li>Everyone decides independently, and the team's combined choices change the shared metrics</li>
+        <li>Points for good calls, speed bonuses and streaks</li>
+      </ul>
+      <button id="hbtn" style="width:100%">Create room</button>
+    </div>
+  </div>`;
+  $('#jbtn').onclick = join; $('#rc').onkeydown = e => e.key==='Enter' && join();
+  $('#hbtn').onclick = async () => { const j = await api('/api/create'); Object.assign(sess,{role:'host',room:j.room,hostKey:j.hostKey}); save(); connect(); };
+}
+async function join(){
+  const name = $('#nm').value.trim(), room = $('#rc').value.trim().toUpperCase();
+  try { const j = await api('/api/join',{name,room,pid:sess.pid}); Object.assign(sess,{role:'player',room:j.room,pid:j.pid,name}); save(); connect(); }
+  catch(e){ $('#jerr').textContent = e.message; }
+}
+
+// ---------- Live connection ----------
+function connect(){
+  if(es) es.close();
+  const q = sess.role==='host' ? `hostKey=${sess.hostKey}` : `pid=${sess.pid}`;
+  es = new EventSource(`/events?room=${sess.room}&${q}`);
+  es.onmessage = e => { S = JSON.parse(e.data); skew = Date.now() - S.now; render(); };
+  es.onerror = () => { if(es.readyState===2){ sessionStorage.removeItem('ic'); landing('Connection lost or room closed. Please rejoin.'); } };
+}
+
+function remaining(){ return Math.max(0, Math.ceil((S.deadline - (Date.now()-skew))/1000)); }
+function startTick(){
+  clearInterval(tick);
+  tick = setInterval(()=>{ if(!S || S.phase!=='question') return clearInterval(tick);
+    const r = remaining(); const n = $('#tnum'), b = $('#tbar'); if(n) n.textContent = r+'s'; if(b) b.style.width = (100*r/S.roundSeconds)+'%';
+    if(n) n.style.color = r<=10 ? 'var(--red)' : 'var(--ink)';
+  }, 250);
+}
+
+function metricsHTML(delta){
+  return Object.entries(MET).map(([k,[l,c]])=>{
+    const v = S.metrics[k], d = delta ? delta[k] : 0;
+    return `<div class="metric"><div class="lbl"><span>${l}</span><span>${v}${d?`<span class="delta ${d>0?'up':'down'}">${d>0?'▲ +':'▼ '}${d}</span>`:''}</span></div>
+      <div class="mbar"><div style="width:${v}%;background:${v<30?'var(--red)':c}"></div></div></div>`; }).join('');
+}
+function boardHTML(limit){
+  const rows = S.players.slice(0,limit||99).map(p=>`<tr><td>${esc(p.name)}${p.streak>=3?' 🔥':''}</td><td style="text-align:right;font-weight:700">${p.score}</td></tr>`).join('');
+  return rows ? `<table>${rows}</table>` : '<p class="muted">No players yet.</p>';
+}
+function scenHTML(){ const s=S.scenario; return `<span class="scen-time">${esc(s.time)} · Round ${S.round+1}/${S.totalRounds}</span>
+  <div class="scen-title">${esc(s.title)}</div><div class="scen-text">${esc(s.text)}</div>`; }
+function timerHTML(){ const r = remaining(); return `<div class="timer" style="margin-top:14px"><div class="tbar"><div id="tbar" style="width:${100*r/S.roundSeconds}%"></div></div><div class="tnum" id="tnum">${r}s</div></div>`; }
+
+function revealBars(){
+  const R = S.reveal, total = R.counts.reduce((a,b)=>a+b,0)||1;
+  return `<div class="bars">${S.scenario.options.map((o,i)=>`
+    <div class="row"><span class="k k${i} opt" style="padding:0;border:0;flex:0 0 32px;height:32px;display:grid;place-items:center;color:#fff;font-weight:800;border-radius:8px">${LETTERS[i]}</span>
+      <div style="flex:2;font-size:15px">${esc(o)} ${i===R.best?'<b style="color:var(--green)">✔ best call</b>':''}<span class="muted" style="font-size:12px"> · ${R.optionPoints[i]} pts</span></div>
+      <div class="b"><div style="width:${100*R.counts[i]/total}%;background:${i===R.best?'var(--green)':COLORS[i]}"></div></div>
+      <b style="min-width:28px;text-align:right">${R.counts[i]}</b></div>`).join('')}</div>
+    ${R.noAnswers?'<p class="err">Nobody decided, so the indecision hit every metric (−6).</p>':''}
+    <div class="lesson">💡 ${esc(R.lesson)}</div>`;
+}
+
+function confetti(){ for(let i=0;i<90;i++){ const d=document.createElement('div'); d.className='confetti';
+  d.style.left=Math.random()*100+'vw'; d.style.background=COLORS[i%4]; d.style.animationDuration=(2+Math.random()*2.5)+'s'; d.style.animationDelay=Math.random()*.8+'s';
+  document.body.appendChild(d); setTimeout(()=>d.remove(),5500);} }
+
+// ---------- Render ----------
+function render(){
+  const key = S.phase+S.round; const changed = key!==lastPhaseKey; lastPhaseKey = key;
+  $('#hdr').textContent = `Room ${S.code} · ${S.playerCount} player${S.playerCount===1?'':'s'}`;
+  if(S.role==='host') hostView(changed); else playerView(changed);
+  if(S.phase==='question') startTick();
+  if(changed && S.phase==='end') confetti();
+}
+
+function hostView(){
+  const link = `${location.origin}/?room=${S.code}`;
+  const act = a => api('/api/host',{room:sess.room,hostKey:sess.hostKey,action:a});
+  let h = '';
+  if(S.phase==='lobby'){
+    h = `<div class="grid g3"><div class="card center">
+      <h3>Join at</h3><div style="font-size:20px;font-weight:600">${esc(location.origin)}</div>
+      <h3 style="margin-top:18px">Room code</h3><div class="code">${S.code}</div>
+      <button class="ghost" id="cp">📋 Copy invite link</button>
+      <h3 style="margin-top:24px">In the lobby (${S.playerCount})</h3>
+      <div class="chips" style="justify-content:center">${S.players.map(p=>`<span class="chip">${esc(p.name)}</span>`).join('')||'<span class="muted">Waiting for players…</span>'}</div>
+      <div class="row-actions" style="justify-content:center"><button class="pink" id="go" ${S.playerCount?'':'disabled'}>▶ Start simulation</button></div>
+    </div><div class="card"><h3>Your mission</h3><p>It's launch week. Your team runs a customer-facing digital platform, and crises are coming.</p>
+      <p>Keep all four metrics healthy. Every decision affects them, so <b>the team's average choice drives the outcome</b>.</p>${metricsHTML()}</div></div>`;
+  } else if(S.phase==='question'){
+    h = `<div class="grid g3"><div class="card">${scenHTML()}
+      <div class="opts">${S.scenario.options.map((o,i)=>`<div class="opt" style="cursor:default"><span class="k k${i}">${LETTERS[i]}</span><span>${esc(o)}</span></div>`).join('')}</div>${timerHTML()}
+      <div class="row-actions"><button class="ghost" id="rv">Reveal now (${S.answeredCount}/${S.playerCount} answered)</button></div></div>
+      <div class="card"><h3>Decided</h3><div class="chips">${S.players.map(p=>`<span class="chip ${p.answered?'done':''}">${esc(p.name)}</span>`).join('')}</div>
+      <h3 style="margin-top:20px">Team health</h3>${metricsHTML()}</div></div>`;
+  } else if(S.phase==='reveal'){
+    const last = S.round+1>=S.totalRounds;
+    h = `<div class="grid g3"><div class="card">${scenHTML()}<h3 style="margin-top:18px">How the team voted</h3>${revealBars()}
+      <div class="row-actions"><button class="pink" id="nx">${last?'🏁 Final results':'Next crisis ➜'}</button></div></div>
+      <div class="card"><h3>Team health</h3>${metricsHTML(S.reveal.delta)}<h3 style="margin-top:20px">Leaderboard</h3>${boardHTML(8)}</div></div>`;
+  } else h = endHTML();
+  $('#app').innerHTML = h;
+  if($('#cp')) $('#cp').onclick = ()=>{ navigator.clipboard.writeText(`Join our Incident Commander game: ${link}  (room code ${S.code})`); $('#cp').textContent='✔ Copied'; };
+  if($('#go')) $('#go').onclick = ()=>act('start');
+  if($('#rv')) $('#rv').onclick = ()=>act('reveal');
+  if($('#nx')) $('#nx').onclick = ()=>act('next');
+  if($('#again')) $('#again').onclick = ()=>{ sessionStorage.removeItem('ic'); location.href='/'; };
+}
+
+function endHTML(){
+  const avg = Math.round(Object.values(S.metrics).reduce((a,b)=>a+b,0)/4);
+  const verdict = avg>=75?['🏆 Legendary team','Customers barely noticed a thing. Promotions all round.']:avg>=60?['✅ Solid crew','You were bruised but stable, with plenty of lessons for the retro.']:avg>=45?['⚠️ Survived… just','The platform is up, but trust and morale need some care.']:['🔥 Everything is on fire','Time for a long retrospective (and a coffee).'];
+  const t = S.players.slice(0,3), H=[150,110,80], ord=[1,0,2];
+  const hist = (S.history||[]).map((x,i)=>`<tr><td>${i+1}. ${esc(x.title)}</td><td style="text-align:right">${x.consensus}% agreed</td></tr>`).join('');
+  return `<div class="card center"><h3>Week complete</h3><div class="big">${verdict[0]}</div><p style="font-size:18px">${verdict[1]} Team health score: <b>${avg}/100</b></p>
+    <div class="podium">${ord.filter(i=>t[i]).map(i=>`<div class="pod"><div style="font-weight:700;margin-bottom:6px">${esc(t[i].name)}<br><span class="muted">${t[i].score} pts</span></div><div class="blk" style="height:${H[i]}px;background:${[ 'var(--pink)','var(--blue)','var(--purple)'][i]}">${i+1}</div></div>`).join('')}</div></div>
+    <div class="grid g2" style="margin-top:18px"><div class="card"><h3>Final team health</h3>${metricsHTML()}<h3 style="margin-top:16px">Where we agreed (and didn't)</h3><table>${hist}</table>
+    <p class="muted">💬 Discussion prompt: pick the round with the <b>lowest</b> agreement. Why did we split?</p></div>
+    <div class="card"><h3>Full leaderboard</h3>${boardHTML()}${S.role==='host'?'<div class="row-actions"><button id="again">New game</button></div>':''}</div></div>`;
+}
+
+function playerView(changed){
+  const y = S.you || {}; let h = '';
+  if(S.phase==='lobby'){
+    h = `<div class="card center" style="max-width:520px;margin:auto"><div style="font-size:52px">🎧</div><h2>You're in, ${esc(y.name||'')}!</h2>
+      <p class="muted">Waiting for the host to start. While you wait, see who else has joined:</p>
+      <div class="chips" style="justify-content:center">${S.players.map(p=>`<span class="chip">${esc(p.name)}</span>`).join('')}</div></div>`;
+  } else if(S.phase==='question'){
+    const picked = y.choice!==null && y.choice!==undefined;
+    h = `<div class="card" style="max-width:760px;margin:auto">${scenHTML()}
+      <div class="opts">${S.scenario.options.map((o,i)=>`<button class="opt ${picked&&y.choice===i?'sel':''}" data-i="${i}" ${picked?'disabled':''}><span class="k k${i}">${LETTERS[i]}</span><span>${esc(o)}</span></button>`).join('')}</div>
+      ${timerHTML()}<p class="center muted" style="margin-top:12px">${picked?'🔒 Decision locked in. Waiting for the team… ('+S.answeredCount+'/'+S.playerCount+')':'⚡ Good calls made quickly earn up to +50 bonus points'}</p></div>`;
+  } else if(S.phase==='reveal'){
+    const L = y.last||{}; const good = L.base>=80;
+    h = `<div class="grid g3"><div class="card"><div class="center"><div style="font-size:46px">${L.missed?'⏰':good?'🎯':L.base>=40?'🤔':'💥'}</div>
+      <div class="big">+${L.pts||0}</div><p class="muted">${L.missed?'You ran out of time.':`Decision ${L.base} · Speed +${L.speed}${L.streakBonus?' · 🔥 Streak +'+L.streakBonus:''}`}</p></div>
+      ${revealBars()}</div><div class="card"><h3>You</h3><p style="font-size:18px"><b>#${y.rank}</b> of ${S.playerCount} · <b>${y.score}</b> pts</p>
+      <h3>Team health</h3>${metricsHTML(S.reveal.delta)}<p class="muted center">Next crisis incoming…</p></div></div>`;
+  } else h = endHTML();
+  $('#app').innerHTML = h;
+  document.querySelectorAll('.opt[data-i]').forEach(b=>b.onclick=async()=>{
+    document.querySelectorAll('.opt[data-i]').forEach(x=>x.disabled=true); b.classList.add('sel');
+    try{ await api('/api/answer',{room:sess.room,pid:sess.pid,choice:+b.dataset.i}); }catch(e){ alert(e.message); }
+  });
+}
+
+// ---------- Boot ----------
+if(location.protocol==='file:'){ document.getElementById('app').innerHTML='<div class="card"><h2>Start the server first</h2><p>Run <code>node server.js</code> in this folder, then open <b>http://localhost:3000</b>.</p></div>'; }
+else if(sess.room && (sess.hostKey || sess.pid)) connect(); else landing();
+</script>
+</body>
+</html>
