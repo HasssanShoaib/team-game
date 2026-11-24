@@ -1,4 +1,4 @@
-// Incident Commander - live multiplayer team simulation
+// Incident Commander - live multiplayer team simulation (v2)
 // Zero dependencies. Run:  node server.js   (Node 18+)
 const http = require('http');
 const fs = require('fs');
@@ -105,9 +105,8 @@ const SCENARIOS = [
 // ---------------- State ----------------
 const rooms = {};
 const id = (n = 8) => crypto.randomBytes(n).toString('hex');
-const code = () => { let c; do { c = Math.random().toString(36).slice(2, 7).toUpperCase(); } while (rooms[c]); return c; };
+const code = () => { let c; do { c = Math.random().toString(36).slice(2, 7).toUpperCase(); } while (rooms[c] || c.length < 5); return c; };
 const clamp = v => Math.max(0, Math.min(100, Math.round(v)));
-
 function shuffledOrder(n) { const a = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 function newRoom() {
@@ -115,7 +114,8 @@ function newRoom() {
   rooms[c] = {
     code: c, hostKey: id(12), players: {}, phase: 'lobby', round: -1,
     deadline: 0, answers: {}, metrics: { uptime: 60, trust: 60, budget: 60, morale: 60 },
-    lastReveal: null, clients: new Set(), timer: null, history: [], orders: SCENARIOS.map(s => shuffledOrder(s.options.length)), created: Date.now()
+    lastReveal: null, clients: new Set(), timer: null, history: [],
+    orders: SCENARIOS.map(s => shuffledOrder(s.options.length)), created: Date.now()
   };
   return rooms[c];
 }
@@ -123,8 +123,7 @@ function newRoom() {
 function scenarioView(room) {
   if (room.round < 0 || room.round >= SCENARIOS.length) return null;
   const s = SCENARIOS[room.round];
-  const order = room.orders[room.round];
-  return { time: s.time, title: s.title, text: s.text, options: order.map(i => s.options[i].t) };
+  return { time: s.time, title: s.title, text: s.text, options: room.orders[room.round].map(i => s.options[i].t) };
 }
 
 function leaderboard(room) {
@@ -146,7 +145,10 @@ function view(room, client) {
   else {
     const p = room.players[client.pid];
     base.role = 'player';
-    base.you = p ? { name: p.name, score: p.score, choice: room.answers[p.id] ? room.answers[p.id].choice : null, last: p.last, rank: leaderboard(room).findIndex(x => x.name === p.name) + 1 } : null;
+    base.you = p ? {
+      name: p.name, score: p.score, choice: room.answers[p.id] ? room.answers[p.id].choice : null,
+      last: p.last, rank: leaderboard(room).findIndex(x => x.name === p.name) + 1
+    } : null;
   }
   return base;
 }
@@ -189,17 +191,15 @@ function reveal(room) {
     p.score += pts;
     p.last = { pts, base: opt.p, speed, streakBonus, round: room.round };
   }
-  // Players who did not answer
   for (const p of Object.values(room.players)) {
     if (!room.answers[p.id]) { p.streak = 0; p.last = { pts: 0, base: 0, speed: 0, streakBonus: 0, round: room.round, missed: true }; }
   }
   if (ans.length === 0) METRICS.forEach(m => delta[m] = -6); // No decision is a decision
   METRICS.forEach(m => { delta[m] = Math.round(delta[m]); room.metrics[m] = clamp(room.metrics[m] + delta[m]); });
-  const bestIdx = order.indexOf(s.options.reduce((bi, o, i, arr) => o.p > arr[bi].p ? i : bi, 0));
+  const bestOrig = s.options.reduce((bi, o, i, arr) => o.p > arr[bi].p ? i : bi, 0);
   room.lastReveal = {
-    counts, best: bestIdx, delta, lesson: s.lesson, noAnswers: ans.length === 0,
-    optionPoints: order.map(i => s.options[i].p),
-    optionEffects: order.map(i => s.options[i].e)
+    counts, best: order.indexOf(bestOrig), delta, lesson: s.lesson, noAnswers: ans.length === 0,
+    optionPoints: order.map(i => s.options[i].p)
   };
   room.history.push({ title: s.title, delta, consensus: ans.length ? Math.round(100 * Math.max(...counts) / ans.length) : 0 });
   room.phase = 'reveal';
@@ -215,92 +215,125 @@ function endGame(room) {
 
 // ---------------- HTTP ----------------
 function body(req) {
-  return new Promise(r => { let d = ''; req.on('data', c => { d += c; if (d.length > 1e5) req.destroy(); }); req.on('end', () => { try { r(JSON.parse(d || '{}')); } catch { r({}); } }); });
+  return new Promise(r => {
+    let d = '';
+    req.on('data', c => { d += c; if (d.length > 1e5) req.destroy(); });
+    req.on('end', () => { try { r(JSON.parse(d || '{}')); } catch { r({}); } });
+  });
 }
-function json(res, code, obj) { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); }
+function json(res, code, obj) {
+  res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+  res.end(JSON.stringify(obj));
+}
+function authClient(room, url) {
+  const hk = url.searchParams.get('hostKey'); const pid = url.searchParams.get('pid');
+  if (hk && hk === room.hostKey) return { role: 'host' };
+  if (pid && room.players[pid]) return { role: 'player', pid };
+  return null;
+}
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
+  if (p !== '/api/state') console.log(new Date().toISOString().slice(11, 19), req.method, p);
 
-  if (req.method === 'GET' && (p === '/' || p === '/index.html')) {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    return fs.createReadStream(path.join(__dirname, 'index.html')).pipe(res);
-  }
-
-  if (req.method === 'GET' && p === '/events') {
-    const room = rooms[(url.searchParams.get('room') || '').toUpperCase()];
-    if (!room) return json(res, 404, { error: 'Room not found' });
-    const hk = url.searchParams.get('hostKey'); const pid = url.searchParams.get('pid');
-    let client;
-    if (hk && hk === room.hostKey) client = { role: 'host', res };
-    else if (pid && room.players[pid]) client = { role: 'player', pid, res };
-    else return json(res, 403, { error: 'Not authorised' });
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
-    res.write('retry: 2000\n\n');
-    room.clients.add(client);
-    res.write(`data: ${JSON.stringify(view(room, client))}\n\n`);
-    const ping = setInterval(() => { try { res.write(': ping\n\n'); } catch { } }, 20000);
-    req.on('close', () => { clearInterval(ping); room.clients.delete(client); });
-    return;
-  }
-
-  if (req.method === 'POST' && p === '/api/create') {
-    const room = newRoom();
-    return json(res, 200, { room: room.code, hostKey: room.hostKey });
-  }
-
-  if (req.method === 'POST' && p === '/api/join') {
-    const b = await body(req);
-    const room = rooms[(b.room || '').toUpperCase().trim()];
-    if (!room) return json(res, 404, { error: 'Room code not found. Check it with your host.' });
-    const name = String(b.name || '').trim().slice(0, 24);
-    if (!name) return json(res, 400, { error: 'Please enter your name.' });
-    const existing = Object.values(room.players).find(x => x.name.toLowerCase() === name.toLowerCase());
-    if (existing) {
-      if (b.pid === existing.id) return json(res, 200, { pid: existing.id, room: room.code });
-      return json(res, 409, { error: 'That name is taken in this room. Try adding an initial.' });
+  try {
+    if (req.method === 'GET' && (p === '/' || p === '/index.html')) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      return fs.createReadStream(path.join(__dirname, 'index.html')).pipe(res);
     }
-    if (room.phase === 'end') return json(res, 400, { error: 'This game has finished.' });
-    const pid = id();
-    room.players[pid] = { id: pid, name, score: 0, streak: 0, last: null };
-    broadcast(room);
-    return json(res, 200, { pid, room: room.code });
-  }
 
-  if (req.method === 'POST' && p === '/api/answer') {
-    const b = await body(req);
-    const room = rooms[(b.room || '').toUpperCase()];
-    if (!room || !room.players[b.pid]) return json(res, 404, { error: 'Not in room' });
-    if (room.phase !== 'question' || Date.now() > room.deadline) return json(res, 400, { error: 'Round closed' });
-    if (room.answers[b.pid]) return json(res, 400, { error: 'Already answered' });
-    const c = parseInt(b.choice, 10);
-    if (!(c >= 0 && c < SCENARIOS[room.round].options.length)) return json(res, 400, { error: 'Bad choice' });
-    room.answers[b.pid] = { choice: c, at: Date.now() };
-    if (Object.keys(room.answers).length >= Object.keys(room.players).length) reveal(room);
-    else broadcast(room);
-    return json(res, 200, { ok: true });
-  }
+    if (req.method === 'GET' && p === '/health') return json(res, 200, { ok: true, rooms: Object.keys(rooms).length });
 
-  if (req.method === 'POST' && p === '/api/host') {
-    const b = await body(req);
-    const room = rooms[(b.room || '').toUpperCase()];
-    if (!room || b.hostKey !== room.hostKey) return json(res, 403, { error: 'Not host' });
-    if (b.action === 'start' && room.phase === 'lobby') startRound(room);
-    else if (b.action === 'reveal' && room.phase === 'question') reveal(room);
-    else if (b.action === 'next' && room.phase === 'reveal') startRound(room);
-    else if (b.action === 'end') endGame(room);
-    else if (b.action === 'kick' && room.players[b.pid]) { delete room.players[b.pid]; broadcast(room); }
-    return json(res, 200, { ok: true });
-  }
+    // Polling endpoint (fallback when a proxy buffers the live stream)
+    if (req.method === 'GET' && p === '/api/state') {
+      const room = rooms[(url.searchParams.get('room') || '').toUpperCase()];
+      if (!room) return json(res, 404, { error: 'Room not found' });
+      const client = authClient(room, url);
+      if (!client) return json(res, 403, { error: 'Not authorised' });
+      return json(res, 200, view(room, client));
+    }
 
-  res.writeHead(404); res.end('Not found');
+    // Live push (Server-Sent Events)
+    if (req.method === 'GET' && p === '/events') {
+      const room = rooms[(url.searchParams.get('room') || '').toUpperCase()];
+      if (!room) return json(res, 404, { error: 'Room not found' });
+      const auth = authClient(room, url);
+      if (!auth) return json(res, 403, { error: 'Not authorised' });
+      const client = { ...auth, res };
+      res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+      res.write(':' + ' '.repeat(2048) + '\nretry: 2000\n\n'); // padding helps flush proxy buffers
+      room.clients.add(client);
+      res.write(`data: ${JSON.stringify(view(room, client))}\n\n`);
+      const ping = setInterval(() => { try { res.write(': ping\n\n'); } catch { } }, 15000);
+      req.on('close', () => { clearInterval(ping); room.clients.delete(client); });
+      return;
+    }
+
+    if (req.method === 'POST' && p === '/api/create') {
+      const room = newRoom();
+      console.log(`  ✔ Room ${room.code} created`);
+      return json(res, 200, { room: room.code, hostKey: room.hostKey });
+    }
+
+    if (req.method === 'POST' && p === '/api/join') {
+      const b = await body(req);
+      const room = rooms[(b.room || '').toUpperCase().trim()];
+      if (!room) return json(res, 404, { error: 'Room code not found. Check it with your host.' });
+      const name = String(b.name || '').trim().slice(0, 24);
+      if (!name) return json(res, 400, { error: 'Please enter your name.' });
+      const existing = Object.values(room.players).find(x => x.name.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        if (b.pid === existing.id) return json(res, 200, { pid: existing.id, room: room.code });
+        return json(res, 409, { error: 'That name is taken in this room. Try adding an initial.' });
+      }
+      if (room.phase === 'end') return json(res, 400, { error: 'This game has finished.' });
+      const pid = id();
+      room.players[pid] = { id: pid, name, score: 0, streak: 0, last: null };
+      console.log(`  ✔ ${name} joined ${room.code}`);
+      broadcast(room);
+      return json(res, 200, { pid, room: room.code });
+    }
+
+    if (req.method === 'POST' && p === '/api/answer') {
+      const b = await body(req);
+      const room = rooms[(b.room || '').toUpperCase()];
+      if (!room || !room.players[b.pid]) return json(res, 404, { error: 'Not in room' });
+      if (room.phase !== 'question' || Date.now() > room.deadline) return json(res, 400, { error: 'Round closed' });
+      if (room.answers[b.pid]) return json(res, 400, { error: 'Already answered' });
+      const c = parseInt(b.choice, 10);
+      if (!(c >= 0 && c < SCENARIOS[room.round].options.length)) return json(res, 400, { error: 'Bad choice' });
+      room.answers[b.pid] = { choice: c, at: Date.now() };
+      if (Object.keys(room.answers).length >= Object.keys(room.players).length) reveal(room);
+      else broadcast(room);
+      return json(res, 200, { ok: true });
+    }
+
+    if (req.method === 'POST' && p === '/api/host') {
+      const b = await body(req);
+      const room = rooms[(b.room || '').toUpperCase()];
+      if (!room || b.hostKey !== room.hostKey) return json(res, 403, { error: 'Not host' });
+      if (b.action === 'start' && room.phase === 'lobby') startRound(room);
+      else if (b.action === 'reveal' && room.phase === 'question') reveal(room);
+      else if (b.action === 'next' && room.phase === 'reveal') startRound(room);
+      else if (b.action === 'end') endGame(room);
+      return json(res, 200, { ok: true });
+    }
+
+    res.writeHead(404); res.end('Not found');
+  } catch (err) {
+    console.error('  ✖ Error:', err);
+    if (!res.headersSent) json(res, 500, { error: 'Server error: ' + err.message });
+  }
 });
 
 // Clean up rooms older than 12h
-setInterval(() => { const cut = Date.now() - 12 * 3600e3; for (const c in rooms) if (rooms[c].created < cut) { clearTimeout(rooms[c].timer); delete rooms[c]; } }, 3600e3);
+setInterval(() => {
+  const cut = Date.now() - 12 * 3600e3;
+  for (const c in rooms) if (rooms[c].created < cut) { clearTimeout(rooms[c].timer); delete rooms[c]; }
+}, 3600e3);
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n  🚨 Incident Commander is running on http://localhost:${PORT}`);
-  console.log(`  Round length: ${ROUND_SECONDS}s  |  Scenarios: ${SCENARIOS.length}\n`);
+  console.log(`  Health check: /health  |  Round length: ${ROUND_SECONDS}s  |  Scenarios: ${SCENARIOS.length}\n`);
 });
