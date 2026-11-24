@@ -144,8 +144,10 @@ function landing(msg){
     if (c) { e.preventDefault(); rc.value = c; }
   });
   rc.addEventListener('blur', () => { const c = extractCode(rc.value); if (c) rc.value = c; });
-  rc.onkeydown = e => e.key === 'Enter' && join();
-  $('#nm').onkeydown = e => e.key === 'Enter' && join();
+  // Only intercept Enter; returning false from onkeydown would block ALL typing
+  const onEnter = e => { if (e.key === 'Enter') { e.preventDefault(); join(); } };
+  rc.addEventListener('keydown', onEnter);
+  $('#nm').addEventListener('keydown', onEnter);
   $('#jbtn').onclick = join;
   (pre ? $('#nm') : rc).focus();
   $('#hbtn').onclick = async () => {
