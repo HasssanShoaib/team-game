@@ -36,6 +36,21 @@
   .stick.fire { border-color: rgba(244, 63, 94, .5); } .stick.fire .knob { background: rgba(244, 63, 94, .6); border-color: #fecdd3; }
   ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, .35); border-radius: 9999px; }
 
+
+  /* Top-3 podium on the summary screen */
+  .podium { display: flex; justify-content: center; align-items: flex-end; gap: 10px; margin: 4px 0 18px; }
+  .pod { width: 30%; max-width: 140px; text-align: center; animation: podIn .5s ease-out both; }
+  .pod .pname { font-weight: 800; font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pod .pmeta { font-size: 11px; color: #94a3b8; margin: 2px 0 6px; }
+  .pod .medal { font-size: 28px; line-height: 1; margin-bottom: 4px; }
+  .pod .blk { border-radius: 12px 12px 0 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px;
+    font-size: 26px; font-weight: 900; color: #0a0e17; }
+  .pod.p1 .blk { height: 96px; background: linear-gradient(180deg,#fde047,#f59e0b); box-shadow: 0 0 24px rgba(251,191,36,.45); }
+  .pod.p2 .blk { height: 70px; background: linear-gradient(180deg,#e2e8f0,#94a3b8); }
+  .pod.p3 .blk { height: 52px; background: linear-gradient(180deg,#fdba74,#c2410c); }
+  .pod.p1 { animation-delay: .35s; } .pod.p2 { animation-delay: .15s; } .pod.p3 { animation-delay: 0s; }
+  .pod.me .pname::after { content: " (you)"; color: #67e8f9; font-weight: 700; font-size: 11px; }
+  @keyframes podIn { from { opacity: 0; transform: translateY(24px); } }
   /* ---- Structural layout (independent of Tailwind) ---- */
   #hud { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
   #hudTL { position: absolute; top: 12px; left: 12px; display: flex; gap: 16px; align-items: center; padding: 8px 16px; border-radius: 16px; }
@@ -214,7 +229,7 @@
       </div>
       <div class="text-right">
         <div class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Fighters</div>
-        <div id="lobbyCount" class="text-2xl font-black text-white">1/12</div>
+        <div id="lobbyCount" class="text-2xl font-black text-white">1/20</div>
       </div>
     </div>
     <div class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Roster</div>
@@ -238,6 +253,7 @@
     <div id="overTag" class="text-xs font-bold uppercase tracking-[.3em] text-amber-300">Victory Royale</div>
     <h2 id="overWinner" class="text-4xl font-black text-white neon-text truncate">Champion</h2>
     <p id="overSub" class="text-slate-400 text-sm mb-4"></p>
+    <div id="podium" class="podium"></div>
     <div class="rounded-2xl bg-slate-900/70 border border-slate-700/70 p-2 mb-5 text-left">
       <div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold px-2 py-1" style="display:grid;grid-template-columns:40px 1fr 60px 70px">
         <span>#</span><span>Fighter</span><span class="text-right">Elims</span><span class="text-right">Survived</span></div>
@@ -260,17 +276,19 @@ const QS = new URLSearchParams(location.search);
 const FAST = QS.has('fast');                       // ?fast  -> short phases for testing
 const TAU = Math.PI * 2;
 const CONFIG = {
-  ARENA_R: 1100, PLAYER_R: 18, SPEED: 260, MAX_HP: 100,
+  ARENA_R: 1100, ARENA_BASE: 1100, ARENA_MAX: 1650, PLAYER_R: 18, SPEED: 260, MAX_HP: 100,
   BOLT_SPEED: 820, BOLT_DMG: 25, BOLT_LIFE: 0.95, BOLT_R: 5, FIRE_CD: 0.25, KNOCKBACK: 280,
   PHASE1: FAST ? 8 : 30,             // combat countdown (s)
   SHRINK: FAST ? 14 : 50,            // ring collapse duration (s)
   ZONE_DPS: 10, ZONE_TICK: 5,        // 10 HP/s applied in 5 HP ticks
-  MAX_FIGHTERS: 12, SOLO_BOTS: 5,
+  MAX_FIGHTERS: 20, SOLO_BOTS: 5,              // up to 20 fighters per room (humans + bots)
   SNAP_MS: 50, INPUT_MS: 33,         // host snapshot 20 Hz, client input 30 Hz
   NET_TIMEOUT_MS: 4000,              // how long to wait for the server to answer create/join
   BOT_SPEED_MUL: 0.88, BOT_RANGE: 560,
-  COLORS: ['#22d3ee', '#f43f5e', '#a3e635', '#c084fc', '#fbbf24', '#38bdf8', '#fb7185', '#34d399', '#f97316', '#e879f9', '#facc15', '#2dd4bf'],
-  BOT_NAMES: ['Nova', 'Cipher', 'Volt', 'Echo', 'Blaze', 'Kestrel', 'Zero', 'Apex', 'Phantom', 'Rogue', 'Vex', 'Onyx'],
+  COLORS: ['#22d3ee', '#f43f5e', '#a3e635', '#c084fc', '#fbbf24', '#38bdf8', '#fb7185', '#34d399', '#f97316', '#e879f9',
+           '#facc15', '#2dd4bf', '#818cf8', '#f472b6', '#4ade80', '#fb923c', '#60a5fa', '#d946ef', '#bef264', '#fda4af'],
+  BOT_NAMES: ['Nova', 'Cipher', 'Volt', 'Echo', 'Blaze', 'Kestrel', 'Zero', 'Apex', 'Phantom', 'Rogue', 'Vex', 'Onyx',
+              'Pulse', 'Spark', 'Glitch', 'Orbit', 'Raven', 'Flux', 'Nyx', 'Titan'],
 };
 
 /* ---------- small utilities ---------- */
@@ -645,13 +663,16 @@ const GameEngine = {
     if (!G.isHost) return;
     const ros = G.roster.slice(0, CONFIG.MAX_FIGHTERS);
     if (ros.length < 2) return UIController.toast('Add an AI bot or invite a friend first', 'warn');
-    const n = ros.length, off = Math.random() * TAU, d = CONFIG.ARENA_R * 0.62;
+    const n = ros.length, off = Math.random() * TAU;
+    // Bigger matches get a bigger arena (1100 for up to 8 fighters, growing to 1650 for 20)
+    const R = Math.round(clamp(CONFIG.ARENA_BASE + (n - 8) * 46, CONFIG.ARENA_BASE, CONFIG.ARENA_MAX));
+    const d = R * 0.62;
     const fighters = ros.map((r, i) => {
       const a = off + (i / n) * TAU;
       return { id: r.id, name: r.name, color: r.color, isBot: r.isBot, x: Math.round(Math.cos(a) * d), y: Math.round(Math.sin(a) * d), angle: a + Math.PI };
     });
-    const za = Math.random() * TAU, zd = Math.random() * CONFIG.ARENA_R * 0.3;
-    this.emit({ k: 'start', fighters, zt: { x: Math.round(Math.cos(za) * zd), y: Math.round(Math.sin(za) * zd) } });
+    const za = Math.random() * TAU, zd = Math.random() * R * 0.3;
+    this.emit({ k: 'start', R, fighters, zt: { x: Math.round(Math.cos(za) * zd), y: Math.round(Math.sin(za) * zd) } });
   },
   hostToLobby() { if (!G.isHost) return; this.emit({ k: 'toLobby' }); this.broadcastLobby(); },
   hostDamage(v, dmg, a, kx, ky) {
@@ -777,6 +798,7 @@ const GameEngine = {
   beginMatch(ev) {
     this.resetMatch();
     for (const o of ev.fighters) G.fighters.set(o.id, this.newFighter(o));
+    CONFIG.ARENA_R = ev.R || CONFIG.ARENA_BASE;
     G.zt = ev.zt || { x: 0, y: 0 };
     G.startT = performance.now(); G.elapsed = 0; G.zone = this.zoneAt(0);
     const me = G.fighters.get(G.myId);
@@ -1285,21 +1307,33 @@ const UIController = {
   showOver(ev) {
     G.screen = 'over'; this.setScreen('over');
     const res = ev.res || [], w = res[0], iWon = w && w.id === G.myId;
-    $('overTag').textContent = iWon ? 'Victory Royale' : 'Match Over';
-    $('overWinner').textContent = w ? w.name : 'No survivors';
-    $('overWinner').style.color = w ? w.color : '#fff';
     const mine = res.find(r => r.id === G.myId);
-    $('overSub').textContent = iWon ? 'You are the last one standing!' : mine ? `You placed #${mine.place} with ${mine.kills} elimination${mine.kills === 1 ? '' : 's'}.` : `${w ? w.name : 'Nobody'} wins the ring.`;
+    const top3 = res.slice(0, 3), myPlace = mine ? mine.place : 0;
+    $('overTag').textContent = iWon ? 'Victory Royale' : myPlace && myPlace <= 3 ? 'Podium Finish' : 'Match Over';
+    $('overWinner').textContent = 'Top ' + Math.min(3, res.length) + ' Champions';
+    $('overWinner').style.color = '#fde047';
+    $('overSub').textContent = iWon ? 'You are the last one standing!'
+      : myPlace && myPlace <= 3 ? `You made the podium in #${myPlace} place with ${mine.kills} elimination${mine.kills === 1 ? '' : 's'}!`
+      : mine ? `You placed #${myPlace} with ${mine.kills} elimination${mine.kills === 1 ? '' : 's'}.` : `${w ? w.name : 'Nobody'} wins the ring.`;
+    // Podium order on screen: 2nd, 1st, 3rd
+    const MEDAL = ['', '🥇', '🥈', '🥉'];
+    $('podium').innerHTML = [top3[1], top3[0], top3[2]].filter(Boolean).map(r => `
+      <div class="pod p${r.place} ${r.id === G.myId ? 'me' : ''}">
+        <div class="medal">${MEDAL[r.place] || ''}</div>
+        <div class="pname" style="color:${esc(r.color)}">${esc(r.name)}</div>
+        <div class="pmeta">${r.kills} elim${r.kills === 1 ? '' : 's'} · ${fmt(r.surv)}</div>
+        <div class="blk">${r.place}</div>
+      </div>`).join('');
     $('overTable').innerHTML = res.map(r => `
-      <div class="px-2 py-1.5 rounded-lg ${r.place === 1 ? 'bg-amber-500/15' : ''} ${r.id === G.myId ? 'ring-1 ring-cyan-400/50' : ''}" style="display:grid;grid-template-columns:40px 1fr 60px 70px;align-items:center">
-        <span class="font-black ${r.place === 1 ? 'text-amber-300' : 'text-slate-400'}">#${r.place}</span>
+      <div class="px-2 py-1.5 rounded-lg ${r.place <= 3 ? 'bg-amber-500/10' : ''} ${r.id === G.myId ? 'ring-1 ring-cyan-400/50' : ''}" style="display:grid;grid-template-columns:40px 1fr 60px 70px;align-items:center">
+        <span class="font-black ${r.place <= 3 ? 'text-amber-300' : 'text-slate-400'}">${['', '🥇', '🥈', '🥉'][r.place] || '#' + r.place}</span>
         <span class="truncate font-semibold"><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:${esc(r.color)}"></span>${esc(r.name)}${r.id === G.myId ? ' <span class="text-cyan-300 text-[10px]">YOU</span>' : ''}</span>
         <span class="text-right font-bold text-cyan-300">${r.kills}</span>
         <span class="text-right tabular-nums text-slate-300">${fmt(r.surv)}</span>
       </div>`).join('');
     $('btnAgain').disabled = !G.isHost; $('btnAgain').textContent = G.isHost ? 'Play Again' : 'Waiting for host…';
     $('btnOverLobby').classList.toggle('hidden', !G.isHost);
-    if (iWon) AudioManager.victory(); else AudioManager.fight();
+    if (myPlace && myPlace <= 3) AudioManager.victory(); else AudioManager.fight();
   },
 };
 

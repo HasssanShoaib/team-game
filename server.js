@@ -11,8 +11,8 @@ const path = require('path');
 const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
-const VERSION = '1.2';
-const MAX_PEERS = 11;
+const VERSION = '1.4';
+const MAX_PEERS = 19;                  // + host = 20 people per room
 const rooms = new Map();
 const clients = new Map();            // id -> client (both transports)
 let seq = 1;

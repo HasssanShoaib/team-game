@@ -1,4 +1,4 @@
-# ⭕ Ring Royale — 2D Neon Battle Royale (v1.2)
+# ⭕ Ring Royale — 2D Neon Battle Royale (v1.4)
 
 ## Run
     node server.js            # Node 18+, no npm install
@@ -20,8 +20,12 @@ Ports tab → port 3000 → Port Visibility → Organization. Then Create Room �
 ## Controls
 WASD/Arrows move · Mouse aim · Click/Space fire · M mute · Q/E switch who you're spectating · Mobile: two on-screen sticks
 
-## Connection modes (v1.2)
+## Connection modes (v1.4)
 The menu badge shows how you're connected:
 - **ONLINE · WS**: WebSocket (fastest)
 - **ONLINE · HTTP**: proxy-safe fallback, used automatically when a network or proxy blocks WebSocket traffic
 You can force the fallback with `/?transport=http`. The server log only counts real players ("✔ player online via …").
+
+## Room size (v1.4)
+- Up to **20 fighters per room** (people + AI bots). If a person joins a full room, a bot is dropped to make space.
+- The arena grows with the number of fighters: 1100 for up to 8, growing to 1650 for 20.
