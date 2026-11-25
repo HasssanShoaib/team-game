@@ -1,5 +1,5 @@
 // =============================================================================
-// Ring Royale — zero-dependency relay server   v1.2
+// NPT Solution Architecture Chapter - Royale — zero-dependency relay server  v1.5
 // Run:  node server.js        (Node 18+)   ->  http://localhost:3000
 // Transports: WebSocket (/ws) with an automatic HTTP long-poll fallback (/rt/*)
 // for networks/proxies that open WebSockets but block their traffic.
@@ -11,10 +11,11 @@ const path = require('path');
 const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
-const VERSION = '1.4';
+const VERSION = '1.5';
+const GAME_NAME = 'NPT Solution Architecture Chapter - Royale';
 const MAX_PEERS = 19;                  // + host = 20 people per room
 const rooms = new Map();
-const clients = new Map();            // id -> client (both transports)
+const clients = new Map();             // id -> client (both transports)
 let seq = 1;
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const onlineCount = () => [...clients.values()].filter(c => c.ready).length;
@@ -37,7 +38,7 @@ function out(c, str) {
   if (!c.open) return;
   if (c.kind === 'ws') return frame(c, 0x1, Buffer.from(str));
   c.q.push(str);
-  if (c.q.length > 600) c.q.splice(0, c.q.length - 600);      // never let a stalled client grow forever
+  if (c.q.length > 600) c.q.splice(0, c.q.length - 600);
   if (c.pending && !c.flushT) c.flushT = setImmediate(() => { c.flushT = null; flushPoll(c); });
 }
 const send = (c, obj) => out(c, JSON.stringify(obj));
@@ -63,7 +64,7 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
     return fs.createReadStream(f).pipe(res);
   }
-  if (p === '/health') return json(res, 200, { ok: true, ringRoyale: true, version: VERSION, rooms: rooms.size, players: onlineCount() });
+  if (p === '/health') return json(res, 200, { ok: true, ringRoyale: true, game: GAME_NAME, version: VERSION, rooms: rooms.size, players: onlineCount() });
 
   // --- HTTP fallback transport ---
   if (p === '/rt/open' && req.method === 'POST') { const c = newClient('http'); return json(res, 200, { cid: c.id }); }
@@ -71,7 +72,7 @@ const server = http.createServer(async (req, res) => {
     const c = clients.get(url.searchParams.get('cid'));
     if (!c || c.kind !== 'http' || !c.open) return json(res, 410, { error: 'gone' });
     c.lastIn = Date.now();
-    if (c.pending) flushPoll(c);                         // replace an older poll
+    if (c.pending) flushPoll(c);
     c.pending = res;
     if (c.q.length) return flushPoll(c);
     c.pendT = setTimeout(() => { if (c.pending === res) flushPoll(c); }, 20000);
@@ -194,7 +195,7 @@ setInterval(() => {
   const now = Date.now();
   for (const c of [...clients.values()]) {
     if (c.kind === 'ws') {
-      if (!c.ready && now - c.created > 10000) drop(c, 'no-traffic');          // half-open / blocked sockets
+      if (!c.ready && now - c.created > 10000) drop(c, 'no-traffic');
       else if (now - c.lastIn > 45000) drop(c, 'timed out');
       else frame(c, 0x9, Buffer.alloc(0));
     } else if (!c.pending && now - c.lastIn > 15000) drop(c, 'timed out');
@@ -211,6 +212,6 @@ server.on('error', err => {
   throw err;
 });
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n  ⭕ Ring Royale server v${VERSION} running on http://localhost:${PORT}`);
+  console.log(`\n  ⭕ ${GAME_NAME} — server v${VERSION} running on http://localhost:${PORT}`);
   console.log(`  Health check: /health   |   Fast test mode: /?fast   |   Force HTTP transport: /?transport=http\n`);
 });

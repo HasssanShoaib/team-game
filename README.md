@@ -1,31 +1,28 @@
-# ⭕ Ring Royale — 2D Neon Battle Royale (v1.4)
+# NPT Solution Architecture Chapter - Royale (v1.5)
+
+2D top-down multiplayer battle royale for team sessions. No dependencies.
 
 ## Run
-    node server.js            # Node 18+, no npm install
-Open port 3000 in a normal browser tab (Codespaces: Ports tab → 🌐).
-- `/?fast` — short rounds for testing · `/health` — must show "ringRoyale": true
+    node server.js        # Node 18+  ->  http://localhost:3000
+`/health` should show `"version":"1.5"`.
 
-## If "Create Room" makes an OFFLINE room
-The menu shows the reason in yellow under the status line. Common causes:
-| Message | Fix |
-|---|---|
-| Port 3000 is running a different server | The quiz server is still running. Ctrl+C it (or `pkill -f "node server.js"`), then `node server.js` in the Ring Royale folder |
-| Cannot reach the server | Start `node server.js` |
-| Redirected (sign-in) | Reload the page in a normal browser tab and sign in to GitHub |
-| Live connection refused / timed out | WebSockets are blocked: use a normal Edge/Chrome tab, not the VS Code preview |
+## Deploy on Render
+Web Service · Build command: `npm install` (or empty) · Start command: `npm start` · Free plan.
+`package.json`, `server.js` and `index.html` must be in the repo root (or set Root Directory).
 
-## Play with friends
-Ports tab → port 3000 → Port Visibility → Organization. Then Create Room → Copy link → share the link.
+## Match timing (configurable)
+- **In the lobby** the host sets *Battle phase* (5–300 s) and *Ring closing* (10–300 s), or picks a preset:
+  Quick 20/30 · Standard 30/50 · Long 60/90 · Epic 90/120. Players see the host's settings live.
+- **By link**: `/?battle=60&ring=90` pre-fills the host's timing.
+- The host's last choice is remembered in that browser.
+- `/?fast` = 8 s / 14 s defaults for quick testing.
+
+## Room size
+Up to 20 fighters (people + AI bots). The arena grows with the number of fighters.
+
+## Look
+Safe zone = glowing red ring; everything outside the ring = light grey (takes 10 HP/s once the ring starts closing).
+Colours can be tuned in `CONFIG` (`RING_COLOR`, `RING_GLOW`, `OUTSIDE_FILL`, `OUTSIDE_ALPHA`).
 
 ## Controls
-WASD/Arrows move · Mouse aim · Click/Space fire · M mute · Q/E switch who you're spectating · Mobile: two on-screen sticks
-
-## Connection modes (v1.4)
-The menu badge shows how you're connected:
-- **ONLINE · WS**: WebSocket (fastest)
-- **ONLINE · HTTP**: proxy-safe fallback, used automatically when a network or proxy blocks WebSocket traffic
-You can force the fallback with `/?transport=http`. The server log only counts real players ("✔ player online via …").
-
-## Room size (v1.4)
-- Up to **20 fighters per room** (people + AI bots). If a person joins a full room, a bot is dropped to make space.
-- The arena grows with the number of fighters: 1100 for up to 8, growing to 1650 for 20.
+WASD/Arrows move · Mouse aim · Click/Space fire · M mute · Q/E change spectated player · Mobile: two on-screen sticks

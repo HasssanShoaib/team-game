@@ -1,0 +1,9 @@
+{
+  "name": "npt-sa-chapter-royale",
+  "version": "1.5.0",
+  "private": true,
+  "description": "NPT Solution Architecture Chapter - Royale: 2D multiplayer battle royale",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}

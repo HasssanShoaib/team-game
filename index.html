@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Ring Royale — Neon Battle Royale</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22none%22 stroke=%22%2322d3ee%22 stroke-width=%2210%22/%3E%3C/svg%3E">
+<title>NPT Solution Architecture Chapter - Royale</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22none%22 stroke=%22%23ef4444%22 stroke-width=%2210%22/%3E%3C/svg%3E">
 <script src="https://cdn.tailwindcss.com" onerror="document.documentElement.classList.add('no-tw')"></script>
 <style>
   /* Critical styles (work even if the Tailwind CDN is blocked) */
@@ -36,6 +36,25 @@
   .stick.fire { border-color: rgba(244, 63, 94, .5); } .stick.fire .knob { background: rgba(244, 63, 94, .6); border-color: #fecdd3; }
   ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, .35); border-radius: 9999px; }
 
+  /* Game title */
+  #gameTitle { margin: 2px 0 0; font-weight: 900; line-height: 1.05; text-align: center; }
+  #gameTitle .t1 { display: block; font-size: clamp(1.35rem, 4.6vw, 2.1rem); color: #f1f5f9; letter-spacing: .01em; }
+  #gameTitle .t2 { display: block; font-size: clamp(2.4rem, 9vw, 3.6rem); letter-spacing: .18em; color: #ef4444;
+    text-shadow: 0 0 22px rgba(239, 68, 68, .75), 0 0 48px rgba(239, 68, 68, .35); }
+
+  /* Match timing panel */
+  #timing { border-radius: 14px; padding: 12px; margin-bottom: 16px; background: rgba(15, 23, 42, .7); border: 1px solid rgba(71, 85, 105, .6); }
+  #timing .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #timing label { display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .08em; }
+  #timing input { width: 100%; margin: 4px 0 0; padding: 8px 10px; border-radius: 10px; background: #0b1224; border: 1px solid #334155;
+    color: #fff; font-size: 16px; font-weight: 800; text-align: center; outline: none; }
+  #timing input:focus { border-color: #ef4444; }
+  #timing input:disabled { opacity: .75; }
+  #timing .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  #timing .presets button { flex: 1; padding: 6px 8px; border-radius: 9px; font-size: 11px; font-weight: 800; cursor: pointer;
+    background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+  #timing .presets button.on { border-color: #ef4444; color: #fecaca; background: rgba(239, 68, 68, .15); }
+  #timingNote { font-size: 11px; color: #94a3b8; margin-top: 8px; text-align: center; }
 
   /* Top-3 podium on the summary screen */
   .podium { display: flex; justify-content: center; align-items: flex-end; gap: 10px; margin: 4px 0 18px; }
@@ -51,6 +70,7 @@
   .pod.p1 { animation-delay: .35s; } .pod.p2 { animation-delay: .15s; } .pod.p3 { animation-delay: 0s; }
   .pod.me .pname::after { content: " (you)"; color: #67e8f9; font-weight: 700; font-size: 11px; }
   @keyframes podIn { from { opacity: 0; transform: translateY(24px); } }
+
   /* ---- Structural layout (independent of Tailwind) ---- */
   #hud { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
   #hudTL { position: absolute; top: 12px; left: 12px; display: flex; gap: 16px; align-items: center; padding: 8px 16px; border-radius: 16px; }
@@ -73,7 +93,6 @@
   #bannerSub { margin-top: 8px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: #cbd5e1; }
   #hpLag, #hpFill { position: absolute; top: 0; bottom: 0; left: 0; }
   #connHelp { font-size: 11px; color: #fbbf24; margin: -8px 0 12px; line-height: 1.4; }
-  /* Small screens: stack the HUD so nothing overlaps */
   @media (max-width: 640px) {
     #hudTC { left: 10px; top: 10px; transform: none; }
     #phaseBox { padding: 4px 14px; min-width: 132px !important; }
@@ -90,22 +109,20 @@
   .no-tw #menu > div, .no-tw #lobby > div, .no-tw #over > div { width: 100%; max-width: 460px; margin: auto; }
   .no-tw #over > div { max-width: 540px; text-align: center; }
   .no-tw .glass.rounded-3xl { border-radius: 24px; padding: 24px; }
-  .no-tw h1 { font-size: 3rem; font-weight: 900; margin: 0; text-align: center; color: #67e8f9; }
   .no-tw #menu .text-center { text-align: center; margin-bottom: 16px; }
   .no-tw h2 { font-size: 2.2rem; margin: 4px 0; }
   .no-tw label, .no-tw .uppercase { text-transform: uppercase; font-size: 11px; letter-spacing: .12em; color: #94a3b8; font-weight: 700; }
   .no-tw #phaseTimer { font-size: 2.2rem; font-weight: 900; color: #fff; text-transform: none; letter-spacing: .05em; }
   .no-tw #hudAlive, .no-tw #hudKills, .no-tw #lobbyCount { font-size: 1.3rem; font-weight: 900; color: #6ee7b7; }
   .no-tw #lobbyCode { font-size: 2.4rem; font-weight: 900; color: #67e8f9; letter-spacing: .25em; }
-  .no-tw input { width: 100%; padding: 12px 14px; border-radius: 14px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 16px; margin: 6px 0 14px; outline: none; }
-  .no-tw input:focus { border-color: #22d3ee; }
+  .no-tw #menu input, .no-tw #lobby > div > div:first-child input { width: 100%; padding: 12px 14px; border-radius: 14px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 16px; margin: 6px 0 14px; outline: none; }
   .no-tw button { border: 1px solid #334155; border-radius: 12px; padding: 10px 14px; background: #1e293b; color: #e2e8f0; font-weight: 800; cursor: pointer; }
   .no-tw .swatch { border-radius: 9999px; padding: 0; border: 2px solid transparent; } .no-tw .swatch.sel { border-color: #fff; }
   .no-tw #menuBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
   .no-tw #menu .flex, .no-tw #lobby .flex, .no-tw #over .flex { display: flex; gap: 10px; align-items: center; }
   .no-tw #menu .flex input { margin: 0; }
   .no-tw #swatches { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 18px; }
-  .no-tw #roster { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; margin: 8px 0 14px; }
+  .no-tw #roster { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; margin: 8px 0 14px; }
   .no-tw #roster > div { padding: 8px 12px; border-radius: 12px; background: #0f172a; }
   .no-tw #btnStart, .no-tw #btnAgain { flex: 1; color: #04131a; }
   .no-tw #hostBots button { flex: 1; }
@@ -124,7 +141,7 @@
 <body class="bg-[#0a0e17] text-slate-200 select-none">
 
 <canvas id="game"></canvas>
-<div id="vignette" class="pointer-events-none fixed inset-0 z-10 opacity-0" style="position:fixed;inset:0;z-index:10;pointer-events:none;opacity:0"></div>
+<div id="vignette" style="position:fixed;inset:0;z-index:10;pointer-events:none;opacity:0"></div>
 <div id="banner" class="hidden" style="transform:translate(-50%,-50%)">
   <div id="bannerTitle" class="neon-text text-cyan-300">FIGHT!</div>
   <div id="bannerSub"></div>
@@ -141,7 +158,7 @@
       <div id="hudKills" class="text-xl font-black text-cyan-300">0</div></div>
   </div>
   <div id="hudTC">
-    <div id="phaseBox" class="glass border-cyan-400/40" style="min-width:190px">
+    <div id="phaseBox" class="glass" style="min-width:190px">
       <div id="phaseLabel" class="text-[11px] font-bold uppercase tracking-[.25em] text-cyan-300">Battle Phase</div>
       <div id="phaseTimer" class="text-4xl font-black tabular-nums tracking-wider text-white leading-tight">00:30</div>
       <div id="phaseSub" class="text-[10px] uppercase tracking-widest text-slate-400">Ring closes in</div>
@@ -185,13 +202,13 @@
 <div id="menu">
   <div class="w-full max-w-md my-auto">
     <div class="text-center mb-5">
-      <div class="text-xs font-bold tracking-[.3em] uppercase text-cyan-400/80">2D Neon Battle Royale</div>
-      <h1 class="text-5xl sm:text-6xl font-black tracking-tight neon-text" style="color:#67e8f9">RING ROYALE</h1>
-      <p class="text-slate-400 text-sm mt-1">30 seconds to fight. Then the ring closes. Last one standing wins.</p>
+      <div class="text-xs font-bold tracking-[.3em] uppercase text-rose-300/80">2D Neon Battle Royale</div>
+      <h1 id="gameTitle"><span class="t1">NPT Solution Architecture Chapter</span><span class="t2">- ROYALE -</span></h1>
+      <p class="text-slate-400 text-sm mt-1">Fight first. Then the red ring closes. Last one standing wins.</p>
     </div>
     <div class="glass rounded-3xl p-6 shadow-2xl">
       <div class="flex items-center justify-between text-xs mb-4" style="display:flex;justify-content:space-between;align-items:center">
-        <span class="flex items-center gap-2"><span id="connDot" class="w-2.5 h-2.5 rounded-full inline-block" style="background:#fbbf24;width:10px;height:10px;border-radius:9999px;display:inline-block"></span> <span id="connText">Checking multiplayer server…</span></span>
+        <span class="flex items-center gap-2"><span id="connDot" style="background:#fbbf24;width:10px;height:10px;border-radius:9999px;display:inline-block"></span> <span id="connText">Checking multiplayer server…</span></span>
         <span id="connBadge" class="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 font-mono text-[10px]">…</span>
       </div>
       <div id="connHelp" class="hidden"></div>
@@ -233,10 +250,25 @@
       </div>
     </div>
     <div class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Roster</div>
-    <div id="roster" class="space-y-2 max-h-64 overflow-y-auto pr-1 mb-4"></div>
+    <div id="roster" class="space-y-2 max-h-56 overflow-y-auto pr-1 mb-4"></div>
     <div id="hostBots" class="flex gap-2 mb-4">
       <button id="btnAddBot" class="btn flex-1 py-2.5 rounded-xl bg-slate-800 border border-cyan-500/40 text-cyan-300 text-xs font-black uppercase tracking-wider">＋ Add AI Bot</button>
       <button id="btnRemBot" class="btn px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-slate-300 text-xs font-black uppercase">－ Bot</button>
+    </div>
+    <!-- Match timing (host can change, everyone can see) -->
+    <div id="timing">
+      <div class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2" style="margin-bottom:8px">⏱ Match timing <span id="timingWho" class="text-slate-500 normal-case tracking-normal font-semibold"></span></div>
+      <div class="row">
+        <div><label for="inP1">Battle phase (sec)</label><input id="inP1" type="number" inputmode="numeric" min="10" max="300" step="5"></div>
+        <div><label for="inShrink">Ring closing (sec)</label><input id="inShrink" type="number" inputmode="numeric" min="15" max="300" step="5"></div>
+      </div>
+      <div class="presets" id="presets">
+        <button type="button" data-p1="20" data-sh="30">Quick 20/30</button>
+        <button type="button" data-p1="30" data-sh="50">Standard 30/50</button>
+        <button type="button" data-p1="60" data-sh="90">Long 60/90</button>
+        <button type="button" data-p1="90" data-sh="120">Epic 90/120</button>
+      </div>
+      <div id="timingNote"></div>
     </div>
     <div class="flex gap-3">
       <button id="btnLeaveLobby" class="btn px-4 py-3 rounded-2xl bg-slate-800 border border-slate-600 font-bold text-sm">Leave</button>
@@ -251,7 +283,7 @@
   <div class="w-full max-w-lg my-auto glass rounded-3xl p-6 shadow-2xl text-center">
     <div class="text-5xl mb-1">🏆</div>
     <div id="overTag" class="text-xs font-bold uppercase tracking-[.3em] text-amber-300">Victory Royale</div>
-    <h2 id="overWinner" class="text-4xl font-black text-white neon-text truncate">Champion</h2>
+    <h2 id="overWinner" class="text-4xl font-black text-white neon-text truncate">Champions</h2>
     <p id="overSub" class="text-slate-400 text-sm mb-4"></p>
     <div id="podium" class="podium"></div>
     <div class="rounded-2xl bg-slate-900/70 border border-slate-700/70 p-2 mb-5 text-left">
@@ -273,18 +305,24 @@
    CONFIG
    ============================================================================= */
 const QS = new URLSearchParams(location.search);
-const FAST = QS.has('fast');                       // ?fast  -> short phases for testing
+const FAST = QS.has('fast');                       // ?fast  -> short default phases for testing
 const TAU = Math.PI * 2;
+const GAME_NAME = 'NPT Solution Architecture Chapter - Royale';
 const CONFIG = {
   ARENA_R: 1100, ARENA_BASE: 1100, ARENA_MAX: 1650, PLAYER_R: 18, SPEED: 260, MAX_HP: 100,
   BOLT_SPEED: 820, BOLT_DMG: 25, BOLT_LIFE: 0.95, BOLT_R: 5, FIRE_CD: 0.25, KNOCKBACK: 280,
+  // Match timing — defaults only; the host changes these in the lobby (or via ?battle=60&ring=90)
   PHASE1: FAST ? 8 : 30,             // combat countdown (s)
   SHRINK: FAST ? 14 : 50,            // ring collapse duration (s)
+  PHASE1_MIN: 5, PHASE1_MAX: 300, SHRINK_MIN: 10, SHRINK_MAX: 300,
   ZONE_DPS: 10, ZONE_TICK: 5,        // 10 HP/s applied in 5 HP ticks
-  MAX_FIGHTERS: 20, SOLO_BOTS: 5,              // up to 20 fighters per room (humans + bots)
-  SNAP_MS: 50, INPUT_MS: 33,         // host snapshot 20 Hz, client input 30 Hz
-  NET_TIMEOUT_MS: 4000,              // how long to wait for the server to answer create/join
+  MAX_FIGHTERS: 20, SOLO_BOTS: 5,    // up to 20 fighters per room (people + bots)
+  SNAP_MS: 50, INPUT_MS: 33,
+  NET_TIMEOUT_MS: 4000,
   BOT_SPEED_MUL: 0.88, BOT_RANGE: 560,
+  // Arena colours
+  RING_COLOR: '#ef4444', RING_GLOW: '#ff2a3d',           // glowing red safe-zone ring
+  OUTSIDE_FILL: 'rgba(203,213,225,', OUTSIDE_ALPHA: 0.30, // light grey area outside the ring
   COLORS: ['#22d3ee', '#f43f5e', '#a3e635', '#c084fc', '#fbbf24', '#38bdf8', '#fb7185', '#34d399', '#f97316', '#e879f9',
            '#facc15', '#2dd4bf', '#818cf8', '#f472b6', '#4ade80', '#fb923c', '#60a5fa', '#d946ef', '#bef264', '#fda4af'],
   BOT_NAMES: ['Nova', 'Cipher', 'Volt', 'Echo', 'Blaze', 'Kestrel', 'Zero', 'Apex', 'Phantom', 'Rogue', 'Vex', 'Onyx',
@@ -301,11 +339,21 @@ const angDiff = (a, b) => ((((b - a + Math.PI) % TAU) + TAU) % TAU) - Math.PI;
 const turnToward = (a, b, max) => a + clamp(angDiff(a, b), -max, max);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; }
-// localStorage can throw in embedded / private browsers — never let that break the game
 const Store = {
   get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} },
 };
+// Match timing: URL (?battle=&ring=) > last saved by this host > defaults
+function cleanTiming(p1, sh) {
+  p1 = Math.round(+p1); sh = Math.round(+sh);
+  return { p1: clamp(isFinite(p1) && p1 > 0 ? p1 : CONFIG.PHASE1, CONFIG.PHASE1_MIN, CONFIG.PHASE1_MAX),
+           sh: clamp(isFinite(sh) && sh > 0 ? sh : CONFIG.SHRINK, CONFIG.SHRINK_MIN, CONFIG.SHRINK_MAX) };
+}
+function initialTiming() {
+  if (QS.get('battle') || QS.get('ring')) return cleanTiming(QS.get('battle') || CONFIG.PHASE1, QS.get('ring') || CONFIG.SHRINK);
+  if (FAST) return cleanTiming(CONFIG.PHASE1, CONFIG.SHRINK);
+  return cleanTiming(Store.get('rr_p1') || CONFIG.PHASE1, Store.get('rr_sh') || CONFIG.SHRINK);
+}
 
 /* =============================================================================
    AudioManager — synthesized retro SFX with native Web Audio (no files)
@@ -361,9 +409,10 @@ const AudioManager = {
    GAME STATE
    ============================================================================= */
 const G = {
-  screen: 'menu',          // menu | lobby | playing | over
+  screen: 'menu',
   myId: 'me', myName: '', myColor: CONFIG.COLORS[0],
   isHost: false, netRoom: false, roomCode: null, roster: [], botSeq: 0,
+  timing: initialTiming(),          // { p1, sh } seconds — set by the host in the lobby
   fighters: new Map(), bolts: [], particles: [], texts: [],
   elapsed: 0, startT: 0, zt: { x: 0, y: 0 }, zone: { x: 0, y: 0, r: CONFIG.ARENA_R, phase: 1 },
   lastSec: -1, phaseShown: 1, ending: false, endAt: 0,
@@ -372,22 +421,21 @@ const G = {
 };
 
 /* =============================================================================
-   NetworkManager — WebSocket relay (host-authoritative rooms)
+   NetworkManager — WebSocket with automatic HTTP long-poll fallback
    ============================================================================= */
 const NetworkManager = {
   ws: null, mode: null, online: false, reason: '', connecting: null, waiters: [], retryT: null, gen: 0,
-  cid: null, outQ: [], flushing: false, helloRes: null, pingT: null,
+  cid: null, outQ: [], flushing: false, helloRes: null, pingT: null, wsBlocked: false,
   base() { return location.pathname.replace(/[^/]*$/, ''); },
   wsUrl() { return QS.get('server') || ((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + this.base() + 'ws'); },
   isOpen() { return this.online; },
-  // Connect (or reuse an in-flight attempt). Resolves true/false and sets this.reason on failure.
   connect() {
     if (this.online) return Promise.resolve(true);
     if (this.connecting) return this.connecting;
     this.connecting = this._connect().then(ok => {
       this.connecting = null; this.online = ok; UIController.setConn(ok, this.reason);
       clearTimeout(this.retryT);
-      if (!ok && !G.netRoom) this.retryT = setTimeout(() => this.connect(), 6000);   // retry quietly while in menus
+      if (!ok && !G.netRoom) this.retryT = setTimeout(() => this.connect(), 6000);
       return ok;
     });
     return this.connecting;
@@ -400,19 +448,16 @@ const NetworkManager = {
         const r = await fetch(this.base() + 'health', { cache: 'no-store', credentials: 'include' });
         const txt = await r.text(); let j = null; try { j = JSON.parse(txt); } catch (_) {}
         if (!j) { this.reason = r.redirected || /<html/i.test(txt) ? 'The page was redirected (usually a GitHub/Codespaces sign-in). Reload, sign in if asked, and try again.' : `Server health check failed (HTTP ${r.status}).`; return false; }
-        if (!j.ringRoyale) { this.reason = 'Port 3000 is running a different server (probably the old quiz game). Stop it with Ctrl+C and run the Ring Royale server.js.'; return false; }
+        if (!j.ringRoyale) { this.reason = 'Port 3000 is running a different server (probably the old quiz game). Stop it with Ctrl+C and run this game\'s server.js.'; return false; }
       } catch (_) { this.reason = 'Cannot reach the server. Is "node server.js" running?'; return false; }
     }
-    const force = QS.get('transport');
-    if (force !== 'http' && !this.wsBlocked) {
+    if (QS.get('transport') !== 'http' && !this.wsBlocked) {
       if (await this.tryWs()) return true;
-      this.wsBlocked = true;            // don't keep opening sockets that the network silently blocks
+      this.wsBlocked = true;
     }
     if (QS.get('server')) { this.reason = this.reason || 'WebSocket server unreachable.'; return false; }
     return this.tryHttp();
   },
-
-  /* --- Transport 1: WebSocket, verified by a hello round-trip --- */
   tryWs() {
     return new Promise(resolve => {
       const gen = ++this.gen; let done = false, ws;
@@ -432,8 +477,6 @@ const NetworkManager = {
     });
   },
   startPing() { clearInterval(this.pingT); this.pingT = setInterval(() => { if (this.mode === 'ws') this.send({ t: 'ping' }); }, 15000); },
-
-  /* --- Transport 2: HTTP long-poll (works through buffering proxies) --- */
   async tryHttp() {
     try {
       const r = await fetch(this.base() + 'rt/open', { method: 'POST', cache: 'no-store', credentials: 'include' });
@@ -475,8 +518,6 @@ const NetworkManager = {
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(batch) })
       .catch(() => {}).finally(() => { this.flushing = false; if (this.outQ.length) this.flush(); });
   },
-
-  /* --- shared --- */
   lost() {
     const was = this.online;
     this.gen++; this.online = false; this.mode = null; clearInterval(this.pingT);
@@ -495,7 +536,6 @@ const NetworkManager = {
     if (this.mode === 'http') { this.outQ.push(o); if (this.outQ.length > 400) this.outQ.splice(0, this.outQ.length - 400); this.flush(); return true; }
     return false;
   },
-  // Send a request and wait for one of the reply types (or null on timeout)
   request(msg, types, ms = CONFIG.NET_TIMEOUT_MS) {
     return new Promise(resolve => {
       const w = { types, resolve: v => { clearTimeout(w.t); resolve(v); } };
@@ -537,7 +577,7 @@ const NetworkManager = {
 };
 
 /* =============================================================================
-   BotAI — stays in the ring, chases centre when it shrinks, strafes, dodges, shoots
+   BotAI — stays in the ring, heads for the centre when it shrinks, strafes, dodges, shoots
    ============================================================================= */
 const BotAI = {
   update(b, dt) {
@@ -547,14 +587,12 @@ const BotAI = {
     if (ai.aimErrT <= 0) { ai.aimErr = rand(-0.16, 0.16); ai.aimErrT = rand(0.3, 0.8); }
     let mx = 0, my = 0;
 
-    // 1) Zone survival — head for where the ring WILL be in ~4s
     const Z = G.zone, future = Z.phase === 2 ? GameEngine.zoneAt(G.elapsed + 4) : Z;
     const fx = future.x - b.x, fy = future.y - b.y, fd = Math.hypot(fx, fy) || 1;
     const margin = Math.min(150, future.r * 0.45);
     if (fd > future.r - margin) { const w = fd > future.r ? 2.4 : 1.3; mx += fx / fd * w; my += fy / fd * w; }
     else if (Z.phase === 2) { mx += fx / fd * 0.3; my += fy / fd * 0.3; }
 
-    // 2) Engage the nearest opponent (with lead + small aim error)
     let tgt = null, td = Infinity;
     for (const o of G.fighters.values()) { if (o === b || !o.alive) continue; const d = Math.hypot(o.x - b.x, o.y - b.y); if (d < td) { td = d; tgt = o; } }
     if (tgt && td < 950) {
@@ -570,7 +608,6 @@ const BotAI = {
       b.angle = turnToward(b.angle, ai.wander, dt * 3);
     }
 
-    // 3) Dodge incoming bolts (side-step perpendicular to the bolt's path)
     for (const bl of G.bolts) {
       if (bl.o === b.id) continue;
       const rx = b.x - bl.x, ry = b.y - bl.y, d = Math.hypot(rx, ry); if (d > 270) continue;
@@ -608,7 +645,13 @@ const GameEngine = {
   emit(ev) { this.applyEvent(ev); NetworkManager.broadcast(ev); },
 
   /* ---------- lobby (host) ---------- */
-  broadcastLobby() { if (G.isHost) this.emit({ k: 'lobby', code: G.roomCode, roster: G.roster }); },
+  broadcastLobby() { if (G.isHost) this.emit({ k: 'lobby', code: G.roomCode, roster: G.roster, timing: G.timing }); },
+  setTiming(p1, sh) {
+    if (!G.isHost) return;
+    G.timing = cleanTiming(p1, sh);
+    Store.set('rr_p1', G.timing.p1); Store.set('rr_sh', G.timing.sh);
+    this.broadcastLobby();
+  },
   addBot() {
     if (!G.isHost) return;
     if (G.roster.length >= CONFIG.MAX_FIGHTERS) return UIController.toast(`Max ${CONFIG.MAX_FIGHTERS} fighters`, 'warn');
@@ -672,7 +715,8 @@ const GameEngine = {
       return { id: r.id, name: r.name, color: r.color, isBot: r.isBot, x: Math.round(Math.cos(a) * d), y: Math.round(Math.sin(a) * d), angle: a + Math.PI };
     });
     const za = Math.random() * TAU, zd = Math.random() * R * 0.3;
-    this.emit({ k: 'start', R, fighters, zt: { x: Math.round(Math.cos(za) * zd), y: Math.round(Math.sin(za) * zd) } });
+    const t = cleanTiming(G.timing.p1, G.timing.sh);
+    this.emit({ k: 'start', R, p1: t.p1, sh: t.sh, fighters, zt: { x: Math.round(Math.cos(za) * zd), y: Math.round(Math.sin(za) * zd) } });
   },
   hostToLobby() { if (!G.isHost) return; this.emit({ k: 'toLobby' }); this.broadcastLobby(); },
   hostDamage(v, dmg, a, kx, ky) {
@@ -733,6 +777,7 @@ const GameEngine = {
     switch (ev.k) {
       case 'lobby':
         G.roster = ev.roster || []; G.roomCode = ev.code || G.roomCode;
+        if (ev.timing) G.timing = cleanTiming(ev.timing.p1, ev.timing.sh);
         if (G.screen === 'lobby') UIController.renderLobby();
         break;
       case 'toLobby':
@@ -796,9 +841,12 @@ const GameEngine = {
   },
 
   beginMatch(ev) {
+    // Apply this match's settings first (arena size + host-chosen timing)
+    CONFIG.ARENA_R = ev.R || CONFIG.ARENA_BASE;
+    const t = cleanTiming(ev.p1 || G.timing.p1, ev.sh || G.timing.sh);
+    CONFIG.PHASE1 = t.p1; CONFIG.SHRINK = t.sh; G.timing = t;
     this.resetMatch();
     for (const o of ev.fighters) G.fighters.set(o.id, this.newFighter(o));
-    CONFIG.ARENA_R = ev.R || CONFIG.ARENA_BASE;
     G.zt = ev.zt || { x: 0, y: 0 };
     G.startT = performance.now(); G.elapsed = 0; G.zone = this.zoneAt(0);
     const me = G.fighters.get(G.myId);
@@ -806,7 +854,7 @@ const GameEngine = {
     G.screen = 'playing';
     UIController.showHud(!!me);
     if (!me) UIController.enterSpectate(null);
-    UIController.banner('FIGHT!', `${CONFIG.PHASE1} seconds until the ring closes`, '#67e8f9');
+    UIController.banner('FIGHT!', `${CONFIG.PHASE1} seconds until the ring closes`, '#f87171');
     AudioManager.fight();
   },
   resetMatch() {
@@ -842,7 +890,7 @@ const GameEngine = {
       f.vx = f.vx * 0.85 + ivx * 0.15; f.vy = f.vy * 0.85 + ivy * 0.15; f.lx = f.x; f.ly = f.y;
     }
 
-    if (G.isHost && !G.ending && G.zone.phase === 2) {          // zone damage (authoritative, real time)
+    if (G.isHost && !G.ending && G.zone.phase === 2) {
       for (const f of G.fighters.values()) {
         if (!f.alive) continue;
         if (Math.hypot(f.x - G.zone.x, f.y - G.zone.y) > G.zone.r) {
@@ -926,16 +974,16 @@ const GameEngine = {
   phaseAlerts() {
     if (G.elapsed < CONFIG.PHASE1) {
       const s = Math.ceil(CONFIG.PHASE1 - G.elapsed);
-      if (s !== G.lastSec) { G.lastSec = s; if (s <= 5) AudioManager.tick(s === 1); else if (s === 10) UIController.banner('10 SECONDS', 'The ring is about to close', '#fbbf24', 1); }
+      if (s !== G.lastSec) { G.lastSec = s; if (s <= 5) AudioManager.tick(s === 1); else if (s === 10 && CONFIG.PHASE1 > 12) UIController.banner('10 SECONDS', 'The ring is about to close', '#fbbf24', 1); }
     } else if (G.phaseShown === 1) {
       G.phaseShown = 2; AudioManager.alarm();
-      UIController.banner('RING CLOSING!', 'Get inside the safe zone', '#fb7185');
+      UIController.banner('RING CLOSING!', 'Get inside the red ring', '#f87171');
     }
   },
 };
 
 /* =============================================================================
-   Renderer — canvas drawing (neon arena, fighters, FX, minimap)
+   Renderer — canvas drawing (arena, fighters, FX, minimap)
    ============================================================================= */
 const canvas = $('game'), ctx = canvas.getContext('2d');
 const mini = $('minimap'), mctx = mini.getContext('2d');
@@ -955,28 +1003,39 @@ const Renderer = {
     ctx.save(); ctx.translate(W / 2 + sx, H / 2 + sy); ctx.scale(z, z); ctx.translate(-cx, -cy);
     const vw = W / 2 / z + 60, vh = H / 2 / z + 60, x0 = cx - vw, x1 = cx + vw, y0 = cy - vh, y1 = cy + vh;
 
-    const gs = 64; ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(34,211,238,0.07)'; ctx.beginPath();
+    // Grid
+    const gs = 64; ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(148,163,184,0.08)'; ctx.beginPath();
     for (let x = Math.floor(x0 / gs) * gs; x <= x1; x += gs) { ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
     for (let y = Math.floor(y0 / gs) * gs; y <= y1; y += gs) { ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(34,211,238,0.12)'; ctx.beginPath();
+    ctx.strokeStyle = 'rgba(148,163,184,0.13)'; ctx.beginPath();
     for (let x = Math.floor(x0 / 256) * 256; x <= x1; x += 256) { ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
     for (let y = Math.floor(y0 / 256) * 256; y <= y1; y += 256) { ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
     ctx.stroke();
 
-    ctx.fillStyle = 'rgba(2,4,10,0.72)'; ctx.beginPath(); ctx.rect(x0, y0, x1 - x0, y1 - y0); ctx.arc(0, 0, R, 0, TAU, true); ctx.fill();
-
+    // Light grey everywhere outside the safe ring (inside the arena AND beyond the arena wall)
     const Z = inGame ? G.zone : { x: 0, y: 0, r: R * (0.78 + 0.06 * Math.sin(t * 0.6)) };
-    if (Z.r < R - 0.5) {
-      ctx.fillStyle = `rgba(225,29,72,${0.17 + 0.05 * Math.sin(t * 6)})`;
-      ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU, false); ctx.arc(Z.x, Z.y, Math.max(0, Z.r), 0, TAU, true); ctx.fill();
-    }
-    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(56,189,248,0.3)'; ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.stroke();
+    const greyA = CONFIG.OUTSIDE_ALPHA + (inGame && G.zone.phase === 2 ? 0.04 * Math.sin(t * 5) : 0);
+    ctx.fillStyle = CONFIG.OUTSIDE_FILL + greyA + ')';
+    ctx.beginPath(); ctx.rect(x0, y0, x1 - x0, y1 - y0); if (Z.r > 0.5) ctx.arc(Z.x, Z.y, Z.r, 0, TAU, true); ctx.fill('evenodd');
+    // Faint arena boundary (bolts vanish here; players are kept inside)
+    ctx.lineWidth = 2; ctx.setLineDash([14, 12]); ctx.strokeStyle = 'rgba(226,232,240,0.35)';
+    ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    // Glowing red safe-zone ring
     if (Z.r > 0.5) {
-      ctx.save(); ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 22; ctx.lineWidth = 4 + (inGame && G.zone.phase === 2 ? Math.sin(t * 8) * 1.2 : 0);
-      ctx.strokeStyle = '#22d3ee'; ctx.beginPath(); ctx.arc(Z.x, Z.y, Z.r, 0, TAU); ctx.stroke(); ctx.restore();
+      const pulse = inGame && G.zone.phase === 2 ? Math.sin(t * 8) : 0;
+      ctx.save();
+      ctx.shadowColor = CONFIG.RING_GLOW; ctx.shadowBlur = 30 + pulse * 8;
+      ctx.strokeStyle = hexA(CONFIG.RING_COLOR, 0.35); ctx.lineWidth = 14 + pulse * 3;
+      ctx.beginPath(); ctx.arc(Z.x, Z.y, Z.r, 0, TAU); ctx.stroke();
+      ctx.shadowBlur = 18; ctx.strokeStyle = CONFIG.RING_COLOR; ctx.lineWidth = 5 + pulse * 1.2;
+      ctx.beginPath(); ctx.arc(Z.x, Z.y, Z.r, 0, TAU); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.strokeStyle = '#fecaca'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(Z.x, Z.y, Z.r, 0, TAU); ctx.stroke();
+      ctx.restore();
     }
 
+    // Particles + bolts
     ctx.globalCompositeOperation = 'lighter';
     for (const p of G.particles) {
       if (p.x < x0 || p.x > x1 || p.y < y0 || p.y > y1) continue;
@@ -1027,10 +1086,12 @@ const Renderer = {
     ctx.fillStyle = white ? '#ffffff' : '#0f172a'; ctx.fill();
     ctx.lineWidth = isMe ? 4 : 3; ctx.strokeStyle = white ? '#ffffff' : f.color; ctx.stroke();
     ctx.beginPath(); ctx.arc(x, y, r * 0.42, 0, TAU); ctx.fillStyle = white ? '#ffffff' : f.color; ctx.fill();
+    // Nameplate (dark pill so it stays readable over the light grey zone) + mini health bar
     const bw = 46, by = y - r - 12;
     ctx.font = (isMe ? '700 ' : '600 ') + '12px "Segoe UI", system-ui, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillText(f.name, x + 1, by - 5);
-    ctx.fillStyle = isMe ? '#ffffff' : f.color; ctx.fillText(f.name, x, by - 6);
+    const tw = ctx.measureText(f.name).width + 10;
+    ctx.fillStyle = 'rgba(10,14,23,0.72)'; ctx.fillRect(x - tw / 2, by - 19, tw, 15);
+    ctx.fillStyle = isMe ? '#ffffff' : f.color; ctx.fillText(f.name, x, by - 7);
     ctx.fillStyle = 'rgba(15,23,42,0.9)'; ctx.fillRect(x - bw / 2, by, bw, 5);
     const hr = clamp(f.hp / CONFIG.MAX_HP, 0, 1);
     ctx.fillStyle = hr > 0.5 ? '#34d399' : hr > 0.25 ? '#fbbf24' : '#f43f5e'; ctx.fillRect(x - bw / 2, by, bw * hr, 5);
@@ -1039,11 +1100,13 @@ const Renderer = {
   renderMinimap(t) {
     const S = mini.width, c = S / 2, k = (S / 2 - 5) / CONFIG.ARENA_R, Z = G.zone;
     mctx.clearRect(0, 0, S, S);
-    mctx.fillStyle = 'rgba(225,29,72,0.28)'; mctx.beginPath(); mctx.arc(c, c, CONFIG.ARENA_R * k, 0, TAU); mctx.fill();
+    mctx.fillStyle = 'rgba(203,213,225,0.45)'; mctx.beginPath(); mctx.arc(c, c, CONFIG.ARENA_R * k, 0, TAU); mctx.fill();
     mctx.fillStyle = '#0b1224'; mctx.beginPath(); mctx.arc(c + Z.x * k, c + Z.y * k, Math.max(0, Z.r * k), 0, TAU); mctx.fill();
-    mctx.strokeStyle = 'rgba(56,189,248,0.4)'; mctx.lineWidth = 1.5; mctx.beginPath(); mctx.arc(c, c, CONFIG.ARENA_R * k, 0, TAU); mctx.stroke();
-    mctx.strokeStyle = '#22d3ee'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(c + Z.x * k, c + Z.y * k, Math.max(0.5, Z.r * k), 0, TAU); mctx.stroke();
-    if (Z.phase === 1) { mctx.setLineDash([3, 3]); mctx.strokeStyle = 'rgba(255,255,255,0.35)'; mctx.beginPath(); mctx.arc(c + G.zt.x * k, c + G.zt.y * k, 4, 0, TAU); mctx.stroke(); mctx.setLineDash([]); }
+    mctx.strokeStyle = 'rgba(226,232,240,0.5)'; mctx.lineWidth = 1; mctx.beginPath(); mctx.arc(c, c, CONFIG.ARENA_R * k, 0, TAU); mctx.stroke();
+    mctx.save(); mctx.shadowColor = CONFIG.RING_GLOW; mctx.shadowBlur = 6;
+    mctx.strokeStyle = CONFIG.RING_COLOR; mctx.lineWidth = 2.5; mctx.beginPath(); mctx.arc(c + Z.x * k, c + Z.y * k, Math.max(0.5, Z.r * k), 0, TAU); mctx.stroke();
+    mctx.restore();
+    if (Z.phase === 1) { mctx.setLineDash([3, 3]); mctx.strokeStyle = 'rgba(255,255,255,0.45)'; mctx.beginPath(); mctx.arc(c + G.zt.x * k, c + G.zt.y * k, 4, 0, TAU); mctx.stroke(); mctx.setLineDash([]); }
     for (const f of G.fighters.values()) {
       if (!f.alive) continue;
       const isMe = f.id === G.myId, spec = f.id === G.spectate;
@@ -1095,6 +1158,13 @@ const UIController = {
     $('btnOverLobby').onclick = () => GameEngine.hostToLobby();
     $('btnOverLeave').onclick = () => this.leaveRoom();
     $('roster').addEventListener('click', e => { const b = e.target.closest('[data-kick]'); if (b) GameEngine.removeBot(b.dataset.kick); });
+    // Match timing controls (host)
+    const applyInputs = () => GameEngine.setTiming($('inP1').value, $('inShrink').value);
+    for (const id of ['inP1', 'inShrink']) {
+      $(id).addEventListener('change', applyInputs);
+      $(id).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyInputs(); e.target.blur(); } });
+    }
+    $('presets').addEventListener('click', e => { const b = e.target.closest('button[data-p1]'); if (b) GameEngine.setTiming(b.dataset.p1, b.dataset.sh); });
     $('btnMute').textContent = AudioManager.muted ? '🔇' : '🔊';
   },
   extractCode(t) {
@@ -1140,13 +1210,13 @@ const UIController = {
     try {
       let ok = await NetworkManager.connect();
       let reply = ok ? await NetworkManager.request({ t: 'create' }, ['created', 'err']) : null;
-      if (ok && !reply) {                                   // socket looked open but no answer — reconnect once and retry
+      if (ok && !reply) {
         NetworkManager.lost(); clearTimeout(NetworkManager.retryT);
         await sleep(300);
         ok = await NetworkManager.connect();
         reply = ok ? await NetworkManager.request({ t: 'create' }, ['created', 'err']) : null;
       }
-      if (reply && reply.t === 'created') return;           // lobby shown by onMessage
+      if (reply && reply.t === 'created') return;
       const why = !ok ? NetworkManager.reason : 'The server did not answer the Create request.';
       this.createOfflineRoom(why);
     } catch (e) {
@@ -1207,6 +1277,17 @@ const UIController = {
     $('hpName').textContent = G.myName || 'You';
     $('btnSpecLeave').textContent = G.isHost ? 'Leave to Lobby' : 'Leave Room';
   },
+  renderTiming() {
+    const t = G.timing, p1 = $('inP1'), sh = $('inShrink');
+    if (document.activeElement !== p1) p1.value = t.p1;
+    if (document.activeElement !== sh) sh.value = t.sh;
+    p1.disabled = sh.disabled = !G.isHost;
+    p1.min = CONFIG.PHASE1_MIN; p1.max = CONFIG.PHASE1_MAX; sh.min = CONFIG.SHRINK_MIN; sh.max = CONFIG.SHRINK_MAX;
+    $('presets').classList.toggle('hidden', !G.isHost);
+    $('presets').querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.p1 === t.p1 && +b.dataset.sh === t.sh));
+    $('timingWho').textContent = G.isHost ? '— you can change this' : '— set by the host';
+    $('timingNote').textContent = `Fight for ${fmt(t.p1)}, then the red ring closes over ${fmt(t.sh)} · ring fully closed at ${fmt(t.p1 + t.sh)}`;
+  },
   renderLobby() {
     $('lobbyCode').textContent = G.roomCode || '----';
     $('lobbyMode').textContent = G.netRoom ? 'Online room — share the code or link' : 'Offline room — bots only';
@@ -1224,8 +1305,9 @@ const UIController = {
         <div class="flex items-center">${tag}${kick}</div></div>`;
     }).join('') : '<div class="text-center text-slate-500 text-sm py-6">Connecting to host…</div>';
     $('hostBots').classList.toggle('hidden', !G.isHost);
+    this.renderTiming();
     const st = $('btnStart');
-    if (G.isHost) { st.disabled = G.roster.length < 2; st.textContent = G.roster.length < 2 ? 'Need 2+ fighters' : 'Start Match'; $('lobbyHint').textContent = 'Add AI bots or wait for friends, then start.'; }
+    if (G.isHost) { st.disabled = G.roster.length < 2; st.textContent = G.roster.length < 2 ? 'Need 2+ fighters' : 'Start Match'; $('lobbyHint').textContent = 'Add AI bots or wait for friends, set the timing, then start.'; }
     else { st.disabled = true; st.textContent = 'Waiting for host…'; $('lobbyHint').textContent = 'The host will start the match.'; }
   },
 
@@ -1303,7 +1385,7 @@ const UIController = {
   },
   toggleMute() { AudioManager.unlock(); AudioManager.setMuted(!AudioManager.muted); $('btnMute').textContent = AudioManager.muted ? '🔇' : '🔊'; },
 
-  /* ---------- victory / summary ---------- */
+  /* ---------- victory / summary (top 3 podium) ---------- */
   showOver(ev) {
     G.screen = 'over'; this.setScreen('over');
     const res = ev.res || [], w = res[0], iWon = w && w.id === G.myId;
@@ -1315,7 +1397,6 @@ const UIController = {
     $('overSub').textContent = iWon ? 'You are the last one standing!'
       : myPlace && myPlace <= 3 ? `You made the podium in #${myPlace} place with ${mine.kills} elimination${mine.kills === 1 ? '' : 's'}!`
       : mine ? `You placed #${myPlace} with ${mine.kills} elimination${mine.kills === 1 ? '' : 's'}.` : `${w ? w.name : 'Nobody'} wins the ring.`;
-    // Podium order on screen: 2nd, 1st, 3rd
     const MEDAL = ['', '🥇', '🥈', '🥉'];
     $('podium').innerHTML = [top3[1], top3[0], top3[2]].filter(Boolean).map(r => `
       <div class="pod p${r.place} ${r.id === G.myId ? 'me' : ''}">
@@ -1326,7 +1407,7 @@ const UIController = {
       </div>`).join('');
     $('overTable').innerHTML = res.map(r => `
       <div class="px-2 py-1.5 rounded-lg ${r.place <= 3 ? 'bg-amber-500/10' : ''} ${r.id === G.myId ? 'ring-1 ring-cyan-400/50' : ''}" style="display:grid;grid-template-columns:40px 1fr 60px 70px;align-items:center">
-        <span class="font-black ${r.place <= 3 ? 'text-amber-300' : 'text-slate-400'}">${['', '🥇', '🥈', '🥉'][r.place] || '#' + r.place}</span>
+        <span class="font-black ${r.place <= 3 ? 'text-amber-300' : 'text-slate-400'}">${MEDAL[r.place] || '#' + r.place}</span>
         <span class="truncate font-semibold"><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:${esc(r.color)}"></span>${esc(r.name)}${r.id === G.myId ? ' <span class="text-cyan-300 text-[10px]">YOU</span>' : ''}</span>
         <span class="text-right font-bold text-cyan-300">${r.kills}</span>
         <span class="text-right tabular-nums text-slate-300">${fmt(r.surv)}</span>
@@ -1400,7 +1481,7 @@ window.addEventListener('error', e => { try { UIController.toast('Script error: 
   if (!window.tailwind) document.documentElement.classList.add('no-tw');
   Renderer.resize(); setupInput(); UIController.init();
   requestAnimationFrame(frame);
-  NetworkManager.connect();          // updates the status line when done
+  NetworkManager.connect();
 })();
 </script>
 </body>
