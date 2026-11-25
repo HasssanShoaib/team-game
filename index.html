@@ -4,10 +4,38 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>Ring Royale — Neon Battle Royale</title>
-<script src="https://cdn.tailwindcss.com" onerror="document.documentElement.classList.add('no-tw')"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22none%22 stroke=%22%2322d3ee%22 stroke-width=%2210%22/%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com" onerror="document.documentElement.classList.add('no-tw')"></script>
 <style>
   /* Critical styles (work even if the Tailwind CDN is blocked) */
+  .hidden { display: none !important; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0e17; color: #e2e8f0;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; touch-action: none; }
+  canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: crosshair; }
+  .glass { background: rgba(10, 16, 30, .82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, .18); }
+  .neon-text { text-shadow: 0 0 18px rgba(34, 211, 238, .55); }
+  .btn { transition: transform .12s, filter .15s, box-shadow .15s; }
+  .btn:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+  .btn:active:not(:disabled) { transform: translateY(1px) scale(.98); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  input { user-select: text; -webkit-user-select: text; }
+  #vignette { transition: opacity .25s; box-shadow: inset 0 0 120px 30px rgba(239, 35, 60, .65); animation: vpulse .9s ease-in-out infinite; }
+  @keyframes vpulse { 50% { box-shadow: inset 0 0 180px 60px rgba(239, 35, 60, .85); } }
+  .banner-show { animation: bannerIn 2.2s ease forwards; }
+  @keyframes bannerIn { 0% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(.96); } }
+  .feed-item { animation: feedIn .2s ease-out; transition: opacity .4s; }
+  @keyframes feedIn { from { opacity: 0; transform: translateX(-14px); } }
+  .swatch { width: 30px; height: 30px; border-radius: 9999px; cursor: pointer; border: 2px solid transparent; padding: 0; transition: transform .12s; }
+  .swatch:hover { transform: scale(1.12); }
+  .swatch.sel { border-color: #fff; transform: scale(1.15); }
+  .stick { width: 130px; height: 130px; border-radius: 9999px; background: rgba(15, 23, 42, .45); border: 2px solid rgba(34, 211, 238, .35); position: relative; touch-action: none; }
+  .knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 9999px; background: rgba(34, 211, 238, .55); border: 1px solid #a5f3fc; pointer-events: none; }
+  .stick.fire { border-color: rgba(244, 63, 94, .5); } .stick.fire .knob { background: rgba(244, 63, 94, .6); border-color: #fecdd3; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, .35); border-radius: 9999px; }
+
   /* ---- Structural layout (independent of Tailwind) ---- */
   #hud { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
   #hudTL { position: absolute; top: 12px; left: 12px; display: flex; gap: 16px; align-items: center; padding: 8px 16px; border-radius: 16px; }
@@ -18,17 +46,18 @@
   #killFeed { position: absolute; left: 12px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; width: 260px; }
   #hpPanel { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); width: min(360px, 80vw); border-radius: 16px; padding: 10px 16px; }
   #specPanel { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 16px; pointer-events: auto; white-space: nowrap; }
+  #specPanel button { white-space: nowrap; }
   #touch { position: fixed; left: 0; right: 0; bottom: 96px; z-index: 20; padding: 0 24px; display: flex; justify-content: space-between; pointer-events: none; }
   #touch .stick { pointer-events: auto; }
   #menu, #lobby, #over { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; background: rgba(10,14,23,.62); }
   #over { background: rgba(10,14,23,.78); }
-  #toasts { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  #toasts { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; width: min(92vw, 520px); }
+  #toasts > div { text-align: center; }
   #banner { position: fixed; left: 50%; top: 38%; z-index: 40; text-align: center; pointer-events: none; }
   #bannerTitle { font-size: clamp(2.4rem, 8vw, 4.5rem); font-weight: 900; letter-spacing: .12em; }
   #bannerSub { margin-top: 8px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: #cbd5e1; }
   #hpLag, #hpFill { position: absolute; top: 0; bottom: 0; left: 0; }
-
-  #specPanel button { white-space: nowrap; }
+  #connHelp { font-size: 11px; color: #fbbf24; margin: -8px 0 12px; line-height: 1.4; }
   /* Small screens: stack the HUD so nothing overlaps */
   @media (max-width: 640px) {
     #hudTC { left: 10px; top: 10px; transform: none; }
@@ -75,49 +104,20 @@
   .no-tw .text-5xl { font-size: 3rem; } .no-tw .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .no-tw #overTable > div { padding: 6px 8px; border-radius: 8px; } .no-tw #overTable .text-right, .no-tw #over .text-right { text-align: right; }
   .no-tw .w-2\.5 { width: 10px; height: 10px; } .no-tw .w-3\.5 { width: 14px; height: 14px; } .no-tw .inline-block { display: inline-block; }
-
-  .hidden { display: none !important; }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0e17; color: #e2e8f0;
-    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; touch-action: none; }
-  canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: crosshair; }
-  .glass { background: rgba(10, 16, 30, .82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(56, 189, 248, .18); }
-  .neon-text { text-shadow: 0 0 18px rgba(34, 211, 238, .55); }
-  .btn { transition: transform .12s, filter .15s, box-shadow .15s; }
-  .btn:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
-  .btn:active:not(:disabled) { transform: translateY(1px) scale(.98); }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
-  input { user-select: text; -webkit-user-select: text; }
-  #vignette { transition: opacity .25s; box-shadow: inset 0 0 120px 30px rgba(239, 35, 60, .65); animation: vpulse .9s ease-in-out infinite; }
-  @keyframes vpulse { 50% { box-shadow: inset 0 0 180px 60px rgba(239, 35, 60, .85); } }
-  .banner-show { animation: bannerIn 2.2s ease forwards; }
-  @keyframes bannerIn { 0% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(.96); } }
-  .feed-item { animation: feedIn .2s ease-out; transition: opacity .4s; }
-  @keyframes feedIn { from { opacity: 0; transform: translateX(-14px); } }
-  .swatch { width: 30px; height: 30px; border-radius: 9999px; cursor: pointer; border: 2px solid transparent; transition: transform .12s; }
-  .swatch:hover { transform: scale(1.12); }
-  .swatch.sel { border-color: #fff; transform: scale(1.15); }
-  .stick { width: 130px; height: 130px; border-radius: 9999px; background: rgba(15, 23, 42, .45); border: 2px solid rgba(34, 211, 238, .35); position: relative; touch-action: none; }
-  .knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 9999px; background: rgba(34, 211, 238, .55); border: 1px solid #a5f3fc; pointer-events: none; }
-  .stick.fire { border-color: rgba(244, 63, 94, .5); } .stick.fire .knob { background: rgba(244, 63, 94, .6); border-color: #fecdd3; }
-  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, .35); border-radius: 9999px; }
 </style>
 </head>
 <body class="bg-[#0a0e17] text-slate-200 select-none">
 
 <canvas id="game"></canvas>
-<div id="vignette" class="pointer-events-none fixed inset-0 z-10 opacity-0"></div>
+<div id="vignette" class="pointer-events-none fixed inset-0 z-10 opacity-0" style="position:fixed;inset:0;z-index:10;pointer-events:none;opacity:0"></div>
 <div id="banner" class="hidden" style="transform:translate(-50%,-50%)">
-  <div id="bannerTitle" class="text-5xl sm:text-7xl font-black tracking-widest neon-text text-cyan-300">FIGHT!</div>
-  <div id="bannerSub" class="mt-2 text-sm sm:text-base font-semibold tracking-widest uppercase text-slate-300"></div>
+  <div id="bannerTitle" class="neon-text text-cyan-300">FIGHT!</div>
+  <div id="bannerSub"></div>
 </div>
 <div id="toasts"></div>
 
 <!-- ============================== IN-GAME HUD ============================== -->
-<div id="hud" class="hidden fixed inset-0 z-20 pointer-events-none">
-  <!-- Top-left: alive + eliminations -->
+<div id="hud" class="hidden">
   <div id="hudTL" class="glass">
     <div><div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Alive</div>
       <div id="hudAlive" class="text-xl font-black text-emerald-300">0/0</div></div>
@@ -125,36 +125,31 @@
     <div><div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Elims</div>
       <div id="hudKills" class="text-xl font-black text-cyan-300">0</div></div>
   </div>
-  <!-- Top-center: phase + timer -->
   <div id="hudTC">
-    <div id="phaseBox" class="glass rounded-2xl px-6 py-2 text-center border-cyan-400/40" style="min-width:190px">
+    <div id="phaseBox" class="glass border-cyan-400/40" style="min-width:190px">
       <div id="phaseLabel" class="text-[11px] font-bold uppercase tracking-[.25em] text-cyan-300">Battle Phase</div>
       <div id="phaseTimer" class="text-4xl font-black tabular-nums tracking-wider text-white leading-tight">00:30</div>
       <div id="phaseSub" class="text-[10px] uppercase tracking-widest text-slate-400">Ring closes in</div>
     </div>
   </div>
-  <!-- Top-right: minimap + buttons -->
   <div id="hudTR">
-    <div class="glass rounded-2xl p-1.5"><canvas id="minimap" width="150" height="150" class="block rounded-xl" style="width:130px;height:130px"></canvas></div>
-    <div class="flex gap-2 pointer-events-auto">
+    <div class="glass rounded-2xl p-1.5"><canvas id="minimap" width="150" height="150" class="block rounded-xl" style="width:130px;height:130px;display:block"></canvas></div>
+    <div>
       <button id="btnMute" class="btn glass rounded-xl px-3 py-1.5 text-sm" title="Mute / unmute (M)">🔊</button>
       <button id="btnExit" class="btn glass rounded-xl px-3 py-1.5 text-xs font-bold text-rose-300" title="Leave match">EXIT</button>
     </div>
   </div>
-  <!-- Bottom-left: kill feed -->
   <div id="killFeed"></div>
-  <!-- Bottom-center: HP -->
   <div id="hpPanel" class="glass">
     <div class="flex justify-between text-xs font-bold mb-1.5">
       <span id="hpName" class="text-slate-200 truncate">Pilot</span>
       <span id="hpText" class="text-emerald-300 tabular-nums">100 HP</span>
     </div>
     <div class="relative h-3.5 rounded-full bg-slate-900 border border-slate-700 overflow-hidden">
-      <div id="hpLag" class="absolute inset-y-0 left-0 bg-rose-200/80" style="width:100%"></div>
-      <div id="hpFill" class="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-cyan-400" style="width:100%"></div>
+      <div id="hpLag" style="width:100%;background:rgba(254,205,211,.8)"></div>
+      <div id="hpFill" style="width:100%;background:linear-gradient(90deg,#10b981,#22d3ee)"></div>
     </div>
   </div>
-  <!-- Bottom-center: spectator banner -->
   <div id="specPanel" class="hidden glass" style="border-color:rgba(251,113,133,.4)">
     <button id="btnSpecPrev" class="btn px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-bold">◀ Prev</button>
     <div class="text-center min-w-[160px]">
@@ -166,39 +161,39 @@
   </div>
 </div>
 
-<!-- Touch controls -->
 <div id="touch" class="hidden">
-  <div id="stickMove" class="stick pointer-events-auto"><div class="knob"></div></div>
-  <div id="stickAim" class="stick fire pointer-events-auto"><div class="knob"></div></div>
+  <div id="stickMove" class="stick"><div class="knob"></div></div>
+  <div id="stickAim" class="stick fire"><div class="knob"></div></div>
 </div>
 
 <!-- ============================== MAIN MENU ============================== -->
-<div id="menu" class="fixed inset-0 z-30 flex items-center justify-center p-4 overflow-y-auto bg-[#0a0e17]/60">
+<div id="menu">
   <div class="w-full max-w-md my-auto">
     <div class="text-center mb-5">
       <div class="text-xs font-bold tracking-[.3em] uppercase text-cyan-400/80">2D Neon Battle Royale</div>
-      <h1 class="text-5xl sm:text-6xl font-black tracking-tight neon-text text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-400 to-fuchsia-400" style="color:#67e8f9">RING ROYALE</h1>
+      <h1 class="text-5xl sm:text-6xl font-black tracking-tight neon-text" style="color:#67e8f9">RING ROYALE</h1>
       <p class="text-slate-400 text-sm mt-1">30 seconds to fight. Then the ring closes. Last one standing wins.</p>
     </div>
     <div class="glass rounded-3xl p-6 shadow-2xl">
-      <div class="flex items-center justify-between text-xs mb-4">
-        <span class="flex items-center gap-2"><span id="connDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span><span id="connText">Checking multiplayer server…</span></span>
+      <div class="flex items-center justify-between text-xs mb-4" style="display:flex;justify-content:space-between;align-items:center">
+        <span class="flex items-center gap-2"><span id="connDot" class="w-2.5 h-2.5 rounded-full inline-block" style="background:#fbbf24;width:10px;height:10px;border-radius:9999px;display:inline-block"></span> <span id="connText">Checking multiplayer server…</span></span>
         <span id="connBadge" class="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 font-mono text-[10px]">…</span>
       </div>
+      <div id="connHelp" class="hidden"></div>
       <label for="inName" class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Nickname</label>
       <input id="inName" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Enter your name…"
         class="w-full px-4 py-3 rounded-2xl bg-slate-900/90 border border-slate-700 focus:border-cyan-400 outline-none text-white font-semibold mb-4" />
       <div class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Avatar colour</div>
       <div id="swatches" class="flex flex-wrap gap-2.5 mb-5"></div>
       <div id="menuBtns" class="grid grid-cols-2 gap-3 mb-4">
-        <button id="btnSolo" class="btn py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm tracking-wide" style="background:#10b981">⚡ Quick Solo + Bots</button>
-        <button id="btnCreate" class="btn py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black text-sm tracking-wide" style="background:#0ea5e9">＋ Create Room</button>
+        <button id="btnSolo" class="btn py-3 rounded-2xl text-white font-black text-sm tracking-wide" style="background:#10b981">⚡ Quick Solo + Bots</button>
+        <button id="btnCreate" class="btn py-3 rounded-2xl text-white font-black text-sm tracking-wide" style="background:#0ea5e9">＋ Create Room</button>
       </div>
       <div class="flex items-center gap-3 my-3 text-[11px] uppercase tracking-widest text-slate-500"><div class="flex-1 h-px bg-slate-700"></div>or join a room<div class="flex-1 h-px bg-slate-700"></div></div>
       <div class="flex gap-2">
-        <input id="inCode" maxlength="40" autocomplete="off" spellcheck="false" placeholder="CODE"
+        <input id="inCode" maxlength="80" autocomplete="off" spellcheck="false" placeholder="CODE"
           class="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-slate-900/90 border border-slate-700 focus:border-fuchsia-400 outline-none text-white text-center font-black tracking-[.35em] uppercase" />
-        <button id="btnJoin" class="btn px-6 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white font-black text-sm" style="background:#a21caf">JOIN</button>
+        <button id="btnJoin" class="btn px-6 rounded-2xl text-white font-black text-sm" style="background:#a21caf">JOIN</button>
       </div>
       <p class="text-[11px] text-slate-500 mt-4 leading-relaxed">Desktop: <b>WASD / Arrows</b> move · <b>Mouse</b> aim · <b>Click / Space</b> fire · <b>M</b> mute.<br>Mobile: left stick moves, right stick aims and fires.</p>
     </div>
@@ -206,7 +201,7 @@
 </div>
 
 <!-- ============================== LOBBY ============================== -->
-<div id="lobby" class="hidden fixed inset-0 z-30 flex items-center justify-center p-4 overflow-y-auto bg-[#0a0e17]/60">
+<div id="lobby" class="hidden">
   <div class="w-full max-w-md my-auto glass rounded-3xl p-6 shadow-2xl">
     <div class="flex items-start justify-between pb-4 mb-4 border-b border-slate-700/70">
       <div>
@@ -230,28 +225,28 @@
     </div>
     <div class="flex gap-3">
       <button id="btnLeaveLobby" class="btn px-4 py-3 rounded-2xl bg-slate-800 border border-slate-600 font-bold text-sm">Leave</button>
-      <button id="btnStart" class="btn flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-slate-950 font-black tracking-wider uppercase" style="background:#34d399">Start Match</button>
+      <button id="btnStart" class="btn flex-1 py-3 rounded-2xl text-slate-950 font-black tracking-wider uppercase" style="background:#34d399">Start Match</button>
     </div>
     <p id="lobbyHint" class="text-center text-xs text-slate-400 mt-3"></p>
   </div>
 </div>
 
 <!-- ============================== VICTORY / SUMMARY ============================== -->
-<div id="over" class="hidden fixed inset-0 z-30 flex items-center justify-center p-4 overflow-y-auto bg-[#0a0e17]/75">
+<div id="over" class="hidden">
   <div class="w-full max-w-lg my-auto glass rounded-3xl p-6 shadow-2xl text-center">
     <div class="text-5xl mb-1">🏆</div>
     <div id="overTag" class="text-xs font-bold uppercase tracking-[.3em] text-amber-300">Victory Royale</div>
     <h2 id="overWinner" class="text-4xl font-black text-white neon-text truncate">Champion</h2>
     <p id="overSub" class="text-slate-400 text-sm mb-4"></p>
     <div class="rounded-2xl bg-slate-900/70 border border-slate-700/70 p-2 mb-5 text-left">
-      <div class="grid grid-cols-[40px_1fr_60px_70px] text-[10px] uppercase tracking-widest text-slate-400 font-bold px-2 py-1" style="display:grid;grid-template-columns:40px 1fr 60px 70px">
+      <div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold px-2 py-1" style="display:grid;grid-template-columns:40px 1fr 60px 70px">
         <span>#</span><span>Fighter</span><span class="text-right">Elims</span><span class="text-right">Survived</span></div>
       <div id="overTable" class="max-h-64 overflow-y-auto"></div>
     </div>
     <div class="flex gap-3">
       <button id="btnOverLeave" class="btn px-4 py-3 rounded-2xl bg-slate-800 border border-slate-600 font-bold text-sm">Leave</button>
       <button id="btnOverLobby" class="btn px-4 py-3 rounded-2xl bg-slate-800 border border-cyan-500/40 text-cyan-300 font-bold text-sm">Lobby</button>
-      <button id="btnAgain" class="btn flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-slate-950 font-black tracking-wider uppercase" style="background:#34d399">Play Again</button>
+      <button id="btnAgain" class="btn flex-1 py-3 rounded-2xl text-slate-950 font-black tracking-wider uppercase" style="background:#34d399">Play Again</button>
     </div>
   </div>
 </div>
@@ -272,6 +267,7 @@ const CONFIG = {
   ZONE_DPS: 10, ZONE_TICK: 5,        // 10 HP/s applied in 5 HP ticks
   MAX_FIGHTERS: 12, SOLO_BOTS: 5,
   SNAP_MS: 50, INPUT_MS: 33,         // host snapshot 20 Hz, client input 30 Hz
+  NET_TIMEOUT_MS: 4000,              // how long to wait for the server to answer create/join
   BOT_SPEED_MUL: 0.88, BOT_RANGE: 560,
   COLORS: ['#22d3ee', '#f43f5e', '#a3e635', '#c084fc', '#fbbf24', '#38bdf8', '#fb7185', '#34d399', '#f97316', '#e879f9', '#facc15', '#2dd4bf'],
   BOT_NAMES: ['Nova', 'Cipher', 'Volt', 'Echo', 'Blaze', 'Kestrel', 'Zero', 'Apex', 'Phantom', 'Rogue', 'Vex', 'Onyx'],
@@ -285,13 +281,19 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const fmt = s => { s = Math.max(0, Math.ceil(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
 const angDiff = (a, b) => ((((b - a + Math.PI) % TAU) + TAU) % TAU) - Math.PI;
 const turnToward = (a, b, max) => a + clamp(angDiff(a, b), -max, max);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; }
+// localStorage can throw in embedded / private browsers — never let that break the game
+const Store = {
+  get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} },
+};
 
 /* =============================================================================
    AudioManager — synthesized retro SFX with native Web Audio (no files)
    ============================================================================= */
 const AudioManager = {
-  ctx: null, master: null, muted: localStorage.getItem('rr_muted') === '1', noiseBuf: null,
+  ctx: null, master: null, muted: Store.get('rr_muted') === '1', noiseBuf: null,
   unlock() {
     try {
       if (!this.ctx) {
@@ -304,22 +306,26 @@ const AudioManager = {
       if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
     } catch (_) {}
   },
-  setMuted(m) { this.muted = m; localStorage.setItem('rr_muted', m ? '1' : '0'); if (this.master) this.master.gain.value = m ? 0 : 0.35; },
+  setMuted(m) { this.muted = m; Store.set('rr_muted', m ? '1' : '0'); if (this.master) this.master.gain.value = m ? 0 : 0.35; },
   ok() { return this.ctx && !this.muted && this.ctx.state === 'running'; },
   tone(freq, dur, type = 'square', vol = 0.2, slide = null, delay = 0) {
     if (!this.ok() || vol <= 0.003) return;
-    const t = this.ctx.currentTime + delay, o = this.ctx.createOscillator(), g = this.ctx.createGain();
-    o.type = type; o.frequency.setValueAtTime(freq, t);
-    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, slide), t + dur);
-    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
-    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.02);
+    try {
+      const t = this.ctx.currentTime + delay, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, slide), t + dur);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+      o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.02);
+    } catch (_) {}
   },
   noise(dur, vol = 0.3, freq = 1400, delay = 0) {
     if (!this.ok() || vol <= 0.003) return;
-    const t = this.ctx.currentTime + delay, s = this.ctx.createBufferSource(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
-    s.buffer = this.noiseBuf; f.type = 'lowpass'; f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(80, t + dur);
-    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
-    s.connect(f); f.connect(g); g.connect(this.master); s.start(t); s.stop(t + dur + 0.02);
+    try {
+      const t = this.ctx.currentTime + delay, s = this.ctx.createBufferSource(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+      s.buffer = this.noiseBuf; f.type = 'lowpass'; f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(80, t + dur);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+      s.connect(f); f.connect(g); g.connect(this.master); s.start(t); s.stop(t + dur + 0.02);
+    } catch (_) {}
   },
   shoot(v = 1) { this.tone(920, 0.09, 'square', 0.07 * v, 300); },
   hit() { this.tone(260, 0.11, 'sawtooth', 0.16, 90); this.noise(0.08, 0.12, 2500); },
@@ -351,32 +357,70 @@ const G = {
    NetworkManager — WebSocket relay (host-authoritative rooms)
    ============================================================================= */
 const NetworkManager = {
-  ws: null, online: false,
-  async connect() {
-    const custom = QS.get('server');
-    if (location.protocol === 'file:' && !custom) return false;
-    if (!custom) {                                   // only open a socket if our server is present
+  ws: null, online: false, reason: '', connecting: null, waiters: [], retryT: null,
+  url() {
+    const custom = QS.get('server'); if (custom) return custom;
+    return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + location.pathname.replace(/[^/]*$/, '') + 'ws';
+  },
+  isOpen() { return !!(this.ws && this.ws.readyState === 1); },
+  // Connect (or reuse an in-flight attempt). Resolves true/false and sets this.reason on failure.
+  connect() {
+    if (this.isOpen()) return Promise.resolve(true);
+    if (this.connecting) return this.connecting;
+    this.connecting = this._connect().then(ok => {
+      this.connecting = null; this.online = ok; UIController.setConn(ok, this.reason);
+      clearTimeout(this.retryT);
+      if (!ok && !G.netRoom) this.retryT = setTimeout(() => this.connect(), 4000);   // keep retrying quietly while in menus
+      return ok;
+    });
+    return this.connecting;
+  },
+  async _connect() {
+    this.reason = '';
+    if (location.protocol === 'file:' && !QS.get('server')) { this.reason = 'Opened as a file — run "node server.js" and open the server URL for multiplayer.'; return false; }
+    if (!QS.get('server')) {
       try {
-        const r = await fetch('health', { cache: 'no-store' });
-        const j = await r.json(); if (!j.ringRoyale) return false;
-      } catch (_) { return false; }
+        const r = await fetch('health', { cache: 'no-store', credentials: 'include' });
+        const txt = await r.text(); let j = null; try { j = JSON.parse(txt); } catch (_) {}
+        if (!j) { this.reason = r.redirected || /<html/i.test(txt) ? 'The page was redirected (usually a GitHub/Codespaces sign-in). Reload, sign in if asked, and try again.' : `Server health check failed (HTTP ${r.status}).`; return false; }
+        if (!j.ringRoyale) { this.reason = 'Port 3000 is running a different server (probably the old quiz game). Stop it with Ctrl+C and run the Ring Royale server.js.'; return false; }
+      } catch (_) { this.reason = 'Cannot reach the server. Is "node server.js" running?'; return false; }
     }
-    const url = custom || ((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + location.pathname.replace(/[^/]*$/, '') + 'ws');
     return new Promise(resolve => {
-      let done = false; const fin = v => { if (!done) { done = true; resolve(v); } };
-      try { this.ws = new WebSocket(url); } catch (_) { return fin(false); }
-      const to = setTimeout(() => { fin(false); try { this.ws.close(); } catch (_) {} }, 4000);
-      this.ws.onopen = () => { clearTimeout(to); this.online = true; fin(true); };
-      this.ws.onclose = () => { clearTimeout(to); const was = this.online; this.online = false; fin(false); if (was) UIController.onDisconnected(); };
-      this.ws.onerror = () => {};
-      this.ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } this.onMessage(m); };
+      let done = false; const fin = (v, why) => { if (!done) { done = true; if (!v && why) this.reason = why; resolve(v); } };
+      let ws;
+      try { ws = new WebSocket(this.url()); } catch (e) { return fin(false, 'WebSocket blocked: ' + e.message); }
+      this.ws = ws;
+      const to = setTimeout(() => { fin(false, 'The live connection timed out — the network or port forwarding may be blocking WebSockets.'); try { ws.close(); } catch (_) {} }, 5000);
+      ws.onopen = () => { clearTimeout(to); fin(true); };
+      ws.onerror = () => {};
+      ws.onclose = () => {
+        clearTimeout(to);
+        fin(false, 'The live connection was refused (WebSocket). Try opening the page in a normal browser tab.');
+        if (this.ws !== ws) return;
+        const was = this.online; this.online = false; this.ws = null;
+        this.waiters.splice(0).forEach(w => w.resolve(null));
+        if (was) UIController.onDisconnected();
+        if (was) { clearTimeout(this.retryT); this.retryT = setTimeout(() => this.connect(), 1500); }   // reconnect after a drop
+      };
+      ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } this.onMessage(m); };
     });
   },
-  send(o) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(o)); },
+  send(o) { if (this.isOpen()) { this.ws.send(JSON.stringify(o)); return true; } return false; },
+  // Send a request and wait for one of the reply types (or null on timeout)
+  request(msg, types, ms = CONFIG.NET_TIMEOUT_MS) {
+    return new Promise(resolve => {
+      const w = { types, resolve: v => { clearTimeout(w.t); resolve(v); } };
+      w.t = setTimeout(() => { this.waiters = this.waiters.filter(x => x !== w); resolve(null); }, ms);
+      this.waiters.push(w);
+      if (!this.send(msg)) { this.waiters = this.waiters.filter(x => x !== w); w.resolve(null); }
+    });
+  },
   toHost(d) { this.send({ t: 'th', d }); },
   broadcast(d) { if (G.netRoom && G.isHost) this.send({ t: 'bc', d }); },
   toPeer(to, d) { this.send({ t: 'tp', to, d }); },
   onMessage(m) {
+    for (const w of this.waiters.slice()) if (w.types.includes(m.t)) { this.waiters = this.waiters.filter(x => x !== w); w.resolve(m); }
     switch (m.t) {
       case 'created':
         G.myId = m.id; G.roomCode = m.code; G.isHost = true; G.netRoom = true;
@@ -415,19 +459,19 @@ const BotAI = {
     if (ai.aimErrT <= 0) { ai.aimErr = rand(-0.16, 0.16); ai.aimErrT = rand(0.3, 0.8); }
     let mx = 0, my = 0;
 
-    // 1) Zone survival — aim for where the ring WILL be in ~4s
+    // 1) Zone survival — head for where the ring WILL be in ~4s
     const Z = G.zone, future = Z.phase === 2 ? GameEngine.zoneAt(G.elapsed + 4) : Z;
     const fx = future.x - b.x, fy = future.y - b.y, fd = Math.hypot(fx, fy) || 1;
     const margin = Math.min(150, future.r * 0.45);
     if (fd > future.r - margin) { const w = fd > future.r ? 2.4 : 1.3; mx += fx / fd * w; my += fy / fd * w; }
     else if (Z.phase === 2) { mx += fx / fd * 0.3; my += fy / fd * 0.3; }
 
-    // 2) Engage the nearest opponent
+    // 2) Engage the nearest opponent (with lead + small aim error)
     let tgt = null, td = Infinity;
     for (const o of G.fighters.values()) { if (o === b || !o.alive) continue; const d = Math.hypot(o.x - b.x, o.y - b.y); if (d < td) { td = d; tgt = o; } }
     if (tgt && td < 950) {
       const lead = (td / CONFIG.BOLT_SPEED) * 0.8;
-      const want = Math.atan2(tgt.y + (tgt.vx ? tgt.vy * lead : 0) - b.y, tgt.x + (tgt.vx ? tgt.vx * lead : 0) - b.x) + ai.aimErr;
+      const want = Math.atan2(tgt.y + tgt.vy * lead - b.y, tgt.x + tgt.vx * lead - b.x) + ai.aimErr;
       b.angle = turnToward(b.angle, want, dt * 7);
       const ux = (tgt.x - b.x) / td, uy = (tgt.y - b.y) / td;
       if (td > 380) { mx += ux * 0.85; my += uy * 0.85; } else if (td < 200) { mx -= ux * 0.8; my -= uy * 0.8; }
@@ -443,7 +487,7 @@ const BotAI = {
       if (bl.o === b.id) continue;
       const rx = b.x - bl.x, ry = b.y - bl.y, d = Math.hypot(rx, ry); if (d > 270) continue;
       const sp = Math.hypot(bl.vx, bl.vy) || 1, dx = bl.vx / sp, dy = bl.vy / sp;
-      if (rx * dx + ry * dy < 0) continue;                     // moving away from us
+      if (rx * dx + ry * dy < 0) continue;
       const perp = rx * -dy + ry * dx;
       if (Math.abs(perp) < CONFIG.PLAYER_R * 2.3) { const s = perp >= 0 ? 1 : -1; mx += -dy * s * 1.9; my += dx * s * 1.9; break; }
     }
@@ -469,11 +513,10 @@ const GameEngine = {
     const R = CONFIG.ARENA_R;
     if (e < CONFIG.PHASE1) return { x: 0, y: 0, r: R, phase: 1, p: 0 };
     const p = clamp((e - CONFIG.PHASE1) / CONFIG.SHRINK, 0, 1);
-    const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;   // smooth in/out
+    const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
     return { x: G.zt.x * ease, y: G.zt.y * ease, r: R * (1 - ease), phase: 2, p };
   },
 
-  /* ---------- emit: host applies an event locally and relays it ---------- */
   emit(ev) { this.applyEvent(ev); NetworkManager.broadcast(ev); },
 
   /* ---------- lobby (host) ---------- */
@@ -496,7 +539,7 @@ const GameEngine = {
     if (!G.isHost) return;
     if (G.screen === 'playing') return NetworkManager.toPeer(m.id, { k: 'reject', msg: 'A match is in progress — try again when it ends.' });
     if (G.roster.length >= CONFIG.MAX_FIGHTERS) {
-      const bot = G.roster.map(r => r.isBot).lastIndexOf(true);          // make space by dropping a bot
+      const bot = G.roster.map(r => r.isBot).lastIndexOf(true);
       if (bot < 0) return NetworkManager.toPeer(m.id, { k: 'reject', msg: 'That room is full.' });
       G.roster.splice(bot, 1);
     }
@@ -520,7 +563,7 @@ const GameEngine = {
       if (dd > R) { x = x / dd * R; y = y / dd * R; }
       f.x = x; f.y = y; f.angle = +d.a || 0;
     } else if (d.k === 'shot') {
-      const now = performance.now(); if (now - f.lastShot < CONFIG.FIRE_CD * 800) return;   // basic rate limit
+      const now = performance.now(); if (now - f.lastShot < CONFIG.FIRE_CD * 800) return;
       f.lastShot = now;
       const a = Math.atan2(+d.vy || 0, +d.vx || 1);
       this.emit({ k: 'shot', o: from, x: +d.x || f.x, y: +d.y || f.y, vx: Math.cos(a) * CONFIG.BOLT_SPEED, vy: Math.sin(a) * CONFIG.BOLT_SPEED });
@@ -576,7 +619,7 @@ const GameEngine = {
     f.cd = CONFIG.FIRE_CD;
     const a = f.angle, m = CONFIG.PLAYER_R + 14;
     const x = f.x + Math.cos(a) * m, y = f.y + Math.sin(a) * m, vx = Math.cos(a) * CONFIG.BOLT_SPEED, vy = Math.sin(a) * CONFIG.BOLT_SPEED;
-    f.kvx -= Math.cos(a) * 35; f.kvy -= Math.sin(a) * 35;                    // recoil
+    f.kvx -= Math.cos(a) * 35; f.kvy -= Math.sin(a) * 35;
     if (f.id === G.myId) G.shake = Math.max(G.shake, 2.2);
     if (G.isHost) this.emit({ k: 'shot', o: f.id, x: Math.round(x), y: Math.round(y), vx: Math.round(vx), vy: Math.round(vy) });
     else { this.spawnBolt(f, x, y, vx, vy); AudioManager.shoot(1); NetworkManager.toHost({ k: 'shot', x: Math.round(x), y: Math.round(y), vx: Math.round(vx), vy: Math.round(vy) }); }
@@ -617,7 +660,7 @@ const GameEngine = {
         break;
       }
       case 'shot': {
-        if (!G.isHost && ev.o === G.myId) return;      // already spawned locally
+        if (!G.isHost && ev.o === G.myId) return;
         const f = G.fighters.get(ev.o); if (!f) return;
         f.angle = Math.atan2(ev.vy, ev.vx);
         this.spawnBolt(f, ev.x, ev.y, ev.vx, ev.vy);
@@ -634,7 +677,7 @@ const GameEngine = {
           const dir = Math.atan2(ev.ky, ev.kx);
           this.burst(f.rx, f.ry, f.color, 12, 260, dir, 1.1);
           this.burst(f.rx, f.ry, '#ffffff', 4, 200, dir, 0.8);
-          if (this.isLocalSim(f)) { f.kvx += ev.kx; f.kvy += ev.ky; }            // knockback
+          if (this.isLocalSim(f)) { f.kvx += ev.kx; f.kvy += ev.ky; }
         }
         if (ev.v === G.myId) { G.shake = Math.max(G.shake, zone ? 4 : 9); zone ? AudioManager.zone() : AudioManager.hit(); }
         else if (ev.a === G.myId) AudioManager.hitMarker();
@@ -684,7 +727,7 @@ const GameEngine = {
   /* ---------- per-frame update ---------- */
   update(dt, realDt = dt) {
     if (G.screen !== 'playing') { this.updateFx(dt); return; }
-    if (G.isHost) G.elapsed = (performance.now() - G.startT) / 1000; else G.elapsed += dt;
+    if (G.isHost) G.elapsed = (performance.now() - G.startT) / 1000; else G.elapsed += realDt;
     G.zone = this.zoneAt(G.elapsed);
     this.phaseAlerts();
     this.updateLocalPlayer(dt);
@@ -707,11 +750,11 @@ const GameEngine = {
       f.vx = f.vx * 0.85 + ivx * 0.15; f.vy = f.vy * 0.85 + ivy * 0.15; f.lx = f.x; f.ly = f.y;
     }
 
-    if (G.isHost && !G.ending && G.zone.phase === 2) {                            // zone damage (authoritative)
+    if (G.isHost && !G.ending && G.zone.phase === 2) {          // zone damage (authoritative, real time)
       for (const f of G.fighters.values()) {
         if (!f.alive) continue;
         if (Math.hypot(f.x - G.zone.x, f.y - G.zone.y) > G.zone.r) {
-          f.zacc += CONFIG.ZONE_DPS * realDt;                                  // real time, so low FPS can't slow the zone
+          f.zacc += CONFIG.ZONE_DPS * realDt;
           while (f.zacc >= CONFIG.ZONE_TICK && f.alive) { f.zacc -= CONFIG.ZONE_TICK; this.hostDamage(f, CONFIG.ZONE_TICK, 'ZONE', 0, 0); }
         } else f.zacc = Math.max(0, f.zacc - dt * 5);
       }
@@ -784,7 +827,6 @@ const GameEngine = {
     let tgt = me && me.alive ? me : G.fighters.get(G.spectate);
     if (!tgt || !tgt.alive) { const a = this.aliveList(); if (a.length && (!me || !me.alive)) { G.spectate = a[0].id; UIController.updateSpectate(); tgt = a[0]; } }
     if (tgt) { const k = Math.min(1, dt * 7); G.cam.x += (tgt.rx - G.cam.x) * k; G.cam.y += (tgt.ry - G.cam.y) * k; }
-    // Gracefully frame the arena: don't let the camera drift far past the wall
     const lim = Math.max(0, CONFIG.ARENA_R - Math.min(G.W, G.H) / G.zoom * 0.3), d = Math.hypot(G.cam.x, G.cam.y);
     if (d > lim) { G.cam.x = G.cam.x / d * lim; G.cam.y = G.cam.y / d * lim; }
   },
@@ -821,7 +863,6 @@ const Renderer = {
     ctx.save(); ctx.translate(W / 2 + sx, H / 2 + sy); ctx.scale(z, z); ctx.translate(-cx, -cy);
     const vw = W / 2 / z + 60, vh = H / 2 / z + 60, x0 = cx - vw, x1 = cx + vw, y0 = cy - vh, y1 = cy + vh;
 
-    // Neon grid
     const gs = 64; ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(34,211,238,0.07)'; ctx.beginPath();
     for (let x = Math.floor(x0 / gs) * gs; x <= x1; x += gs) { ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
     for (let y = Math.floor(y0 / gs) * gs; y <= y1; y += gs) { ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
@@ -831,24 +872,19 @@ const Renderer = {
     for (let y = Math.floor(y0 / 256) * 256; y <= y1; y += 256) { ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
     ctx.stroke();
 
-    // Outside the arena: dark void
     ctx.fillStyle = 'rgba(2,4,10,0.72)'; ctx.beginPath(); ctx.rect(x0, y0, x1 - x0, y1 - y0); ctx.arc(0, 0, R, 0, TAU, true); ctx.fill();
 
-    // Danger zone (translucent crimson between arena wall and safe ring)
     const Z = inGame ? G.zone : { x: 0, y: 0, r: R * (0.78 + 0.06 * Math.sin(t * 0.6)) };
     if (Z.r < R - 0.5) {
       ctx.fillStyle = `rgba(225,29,72,${0.17 + 0.05 * Math.sin(t * 6)})`;
       ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU, false); ctx.arc(Z.x, Z.y, Math.max(0, Z.r), 0, TAU, true); ctx.fill();
     }
-    // Arena wall
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(56,189,248,0.3)'; ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.stroke();
-    // Glowing cyan safe ring
     if (Z.r > 0.5) {
       ctx.save(); ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 22; ctx.lineWidth = 4 + (inGame && G.zone.phase === 2 ? Math.sin(t * 8) * 1.2 : 0);
       ctx.strokeStyle = '#22d3ee'; ctx.beginPath(); ctx.arc(Z.x, Z.y, Z.r, 0, TAU); ctx.stroke(); ctx.restore();
     }
 
-    // Particles + bolts (additive glow)
     ctx.globalCompositeOperation = 'lighter';
     for (const p of G.particles) {
       if (p.x < x0 || p.x > x1 || p.y < y0 || p.y > y1) continue;
@@ -864,17 +900,14 @@ const Renderer = {
     }
     ctx.globalCompositeOperation = 'source-over';
 
-    // Fighters
     for (const f of G.fighters.values()) if (f.alive && f.id !== G.myId) this.drawFighter(f, t);
     const me = G.fighters.get(G.myId); if (me && me.alive) this.drawFighter(me, t);
 
-    // Floating damage numbers
     ctx.textAlign = 'center'; ctx.font = '800 16px "Segoe UI", system-ui, sans-serif';
     for (const tx of G.texts) { ctx.globalAlpha = Math.max(0, tx.life / tx.max); ctx.fillStyle = tx.color; ctx.fillText(tx.text, tx.x, tx.y); }
     ctx.globalAlpha = 1;
     ctx.restore();
 
-    // Mouse reticle (screen space)
     if (G.screen === 'playing' && me && me.alive && Input.hasMouse && !Input.touchAim) {
       const rx = Input.mx, ry = Input.my, cdp = clamp(me.cd / CONFIG.FIRE_CD, 0, 1);
       ctx.strokeStyle = 'rgba(165,243,252,0.9)'; ctx.lineWidth = 1.5;
@@ -891,18 +924,17 @@ const Renderer = {
     const g = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * 2.6);
     g.addColorStop(0, hexA(f.color, isMe ? 0.45 : 0.3)); g.addColorStop(1, hexA(f.color, 0));
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 2.6, 0, TAU); ctx.fill();
-    if (isMe && G.screen === 'playing') {                       // subtle aim guide
+    if (isMe && G.screen === 'playing') {
       ctx.fillStyle = hexA(f.color, 0.45);
       for (let i = 1; i <= 4; i++) { const d = r + 20 + i * 16; ctx.beginPath(); ctx.arc(x + Math.cos(f.angle) * d, y + Math.sin(f.angle) * d, 2.2 - i * 0.3, 0, TAU); ctx.fill(); }
     }
-    ctx.save(); ctx.translate(x, y); ctx.rotate(f.angle);                // barrel
+    ctx.save(); ctx.translate(x, y); ctx.rotate(f.angle);
     ctx.fillStyle = white ? '#fff' : '#0f172a'; ctx.strokeStyle = white ? '#fff' : f.color; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.rect(r - 6, -5, 20, 10); ctx.fill(); ctx.stroke(); ctx.restore();
-    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU);                         // body
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU);
     ctx.fillStyle = white ? '#ffffff' : '#0f172a'; ctx.fill();
     ctx.lineWidth = isMe ? 4 : 3; ctx.strokeStyle = white ? '#ffffff' : f.color; ctx.stroke();
     ctx.beginPath(); ctx.arc(x, y, r * 0.42, 0, TAU); ctx.fillStyle = white ? '#ffffff' : f.color; ctx.fill();
-    // Nameplate + mini health bar
     const bw = 46, by = y - r - 12;
     ctx.font = (isMe ? '700 ' : '600 ') + '12px "Segoe UI", system-ui, sans-serif'; ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillText(f.name, x + 1, by - 5);
@@ -931,7 +963,7 @@ const Renderer = {
 };
 
 /* =============================================================================
-   Input — keyboard, mouse, touch sticks
+   Input state
    ============================================================================= */
 const Input = { keys: {}, mx: 0, my: 0, hasMouse: false, mouseDown: false, moveX: 0, moveY: 0, aimAngle: 0, touchAim: false, touchFire: false,
   isTouch: window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window };
@@ -940,16 +972,14 @@ const Input = { keys: {}, mx: 0, my: 0, hasMouse: false, mouseDown: false, moveX
    UIController — screens, lobby, HUD, feed, banners, victory
    ============================================================================= */
 const UIController = {
-  els: {},
   init() {
-    // Nickname + colour
-    const nm = $('inName'); nm.value = localStorage.getItem('rr_name') || '';
-    G.myColor = localStorage.getItem('rr_color') || CONFIG.COLORS[Math.floor(Math.random() * CONFIG.COLORS.length)];
+    const nm = $('inName'); nm.value = Store.get('rr_name') || '';
+    G.myColor = Store.get('rr_color') || CONFIG.COLORS[Math.floor(Math.random() * CONFIG.COLORS.length)];
     const sw = $('swatches');
     CONFIG.COLORS.forEach(c => {
       const b = document.createElement('button'); b.className = 'swatch' + (c === G.myColor ? ' sel' : ''); b.style.background = c; b.style.boxShadow = `0 0 12px ${c}`;
       b.title = c; b.type = 'button';
-      b.onclick = () => { G.myColor = c; localStorage.setItem('rr_color', c); sw.querySelectorAll('.swatch').forEach(x => x.classList.toggle('sel', x === b)); };
+      b.onclick = () => { G.myColor = c; Store.set('rr_color', c); sw.querySelectorAll('.swatch').forEach(x => x.classList.toggle('sel', x === b)); };
       sw.appendChild(b);
     });
     const join = QS.get('join'); if (join) $('inCode').value = join.toUpperCase().slice(0, 4);
@@ -984,20 +1014,21 @@ const UIController = {
   name() {
     let n = $('inName').value.trim().slice(0, 16);
     if (!n) { n = 'Pilot-' + Math.floor(100 + Math.random() * 900); $('inName').value = n; }
-    localStorage.setItem('rr_name', n); G.myName = n; return n;
+    Store.set('rr_name', n); G.myName = n; return n;
   },
+  busy(btn, on, label) { btn.disabled = on; if (on) { btn._label = btn._label || btn.textContent; btn.textContent = label; } else if (btn._label) btn.textContent = btn._label; },
 
   /* ---------- connection status ---------- */
-  setConn(online) {
-    $('connDot').style.background = online ? '#34d399' : '#22d3ee';
+  setConn(online, reason) {
+    $('connDot').style.background = online ? '#34d399' : '#fbbf24';
     $('connDot').style.boxShadow = online ? '0 0 8px #34d399' : 'none';
-    $('connText').textContent = online ? 'Multiplayer server connected' : 'Offline — solo & local bot rooms only';
-    $('connBadge').textContent = online ? 'ONLINE' : 'LOCAL';
-    $('btnJoin').disabled = !online; $('inCode').disabled = !online;
-    $('inCode').placeholder = online ? 'CODE' : 'OFFLINE';
+    $('connText').textContent = online ? 'Multiplayer server connected' : 'Multiplayer offline — solo & bot rooms still work';
+    $('connBadge').textContent = online ? 'ONLINE' : 'OFFLINE';
+    const help = $('connHelp'); help.textContent = online ? '' : (reason || ''); help.classList.toggle('hidden', online || !reason);
+    $('inCode').placeholder = online ? 'CODE' : 'CODE (needs server)';
   },
   onDisconnected() {
-    this.setConn(false);
+    this.setConn(false, 'Lost connection to the server.');
     if (G.netRoom) { G.netRoom = false; this.toast('Lost connection to the server', 'err'); this.leaveRoom(true); }
   },
 
@@ -1005,28 +1036,52 @@ const UIController = {
   quickSolo() {
     AudioManager.unlock(); this.name();
     if (G.netRoom) { NetworkManager.send({ t: 'leave' }); G.netRoom = false; }
-    G.myId = 'me'; G.isHost = true; G.roomCode = 'SOLO'; G.botSeq = 0;
+    G.myId = 'me'; G.isHost = true; G.netRoom = false; G.roomCode = 'SOLO'; G.botSeq = 0;
     G.roster = [{ id: 'me', name: G.myName, color: G.myColor, isBot: false, isHost: true }];
     for (let i = 0; i < CONFIG.SOLO_BOTS; i++) GameEngine.addBot();
     GameEngine.hostStartMatch();
   },
-  createRoom() {
+  async createRoom() {
+    const btn = $('btnCreate'); if (btn.disabled) return;
     AudioManager.unlock(); this.name(); G.botSeq = 0;
-    if (NetworkManager.online) { NetworkManager.send({ t: 'create' }); return; }
+    this.busy(btn, true, 'Creating…');
+    try {
+      let ok = await NetworkManager.connect();
+      let reply = ok ? await NetworkManager.request({ t: 'create' }, ['created', 'err']) : null;
+      if (ok && !reply) {                                   // socket looked open but no answer — reconnect once and retry
+        try { NetworkManager.ws && NetworkManager.ws.close(); } catch (_) {}
+        await sleep(300);
+        ok = await NetworkManager.connect();
+        reply = ok ? await NetworkManager.request({ t: 'create' }, ['created', 'err']) : null;
+      }
+      if (reply && reply.t === 'created') return;           // lobby shown by onMessage
+      const why = !ok ? NetworkManager.reason : 'The server did not answer the Create request.';
+      this.createOfflineRoom(why);
+    } catch (e) {
+      console.error(e); this.createOfflineRoom('Unexpected error: ' + e.message);
+    } finally { this.busy(btn, false); }
+  },
+  createOfflineRoom(why) {
     G.myId = 'me'; G.isHost = true; G.netRoom = false;
     const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; G.roomCode = Array.from({ length: 4 }, () => A[Math.floor(Math.random() * A.length)]).join('');
     G.roster = [{ id: 'me', name: G.myName, color: G.myColor, isBot: false, isHost: true }];
     this.showLobby(); GameEngine.broadcastLobby();
-    this.toast('Offline room — add AI bots to play', 'warn');
+    this.toast('Created an OFFLINE room (bots only). ' + (why || ''), 'warn', 7000);
   },
-  joinRoom() {
+  async joinRoom() {
+    const btn = $('btnJoin'); if (btn.disabled) return;
     AudioManager.unlock(); this.name();
     const code = this.extractCode($('inCode').value);
     if (code.length !== 4) return this.toast('Room codes are 4 characters', 'err');
-    if (!NetworkManager.online) return this.toast('Multiplayer server not available', 'err');
-    NetworkManager.send({ t: 'join', code, name: G.myName, color: G.myColor });
+    this.busy(btn, true, '…');
+    try {
+      const ok = await NetworkManager.connect();
+      if (!ok) return this.toast('Cannot join — ' + (NetworkManager.reason || 'multiplayer server not available'), 'err', 7000);
+      const reply = await NetworkManager.request({ t: 'join', code, name: G.myName, color: G.myColor }, ['joined', 'err']);
+      if (!reply) this.toast('The server did not answer. Try again.', 'err');
+    } finally { this.busy(btn, false); }
   },
-  leaveRoom(silent) {
+  leaveRoom() {
     if (G.netRoom) { NetworkManager.send({ t: 'leave' }); G.netRoom = false; }
     GameEngine.resetMatch();
     G.isHost = false; G.roster = []; G.roomCode = null; G.myId = 'me';
@@ -1102,7 +1157,6 @@ const UIController = {
       const c = mode === 'calm' ? ['#67e8f9', 'rgba(34,211,238,.45)'] : mode === 'warn' ? ['#fcd34d', 'rgba(251,191,36,.6)'] : ['#fda4af', 'rgba(244,63,94,.7)'];
       lab.style.color = c[0]; box.style.borderColor = c[1]; box.style.boxShadow = `0 0 24px ${c[1]}`; tim.style.color = mode === 'calm' ? '#fff' : c[0];
     }
-    // HP bar with smooth drain
     if (me && me.alive) {
       const hp = clamp(me.hp, 0, 100);
       if (G.hpLag < hp) G.hpLag = hp; else G.hpLag += (hp - G.hpLag) * Math.min(1, dt * 2.5);
@@ -1140,12 +1194,13 @@ const UIController = {
     setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 450); }, 4500);
   },
   clearFeed() { $('killFeed').innerHTML = ''; },
-  toast(msg, type = 'info') {
+  toast(msg, type = 'info', ms = 2800) {
     const c = { ok: '#34d399', err: '#fb7185', warn: '#fbbf24', info: '#67e8f9' }[type] || '#67e8f9';
     const d = document.createElement('div');
-    d.className = 'glass rounded-xl px-4 py-2 text-sm font-semibold shadow-xl'; d.style.borderColor = c; d.style.color = c; d.style.transition = 'opacity .3s';
+    d.className = 'glass rounded-xl px-4 py-2 text-sm font-semibold shadow-xl';
+    d.style.cssText = `border-color:${c};color:${c};transition:opacity .3s;padding:8px 16px;border-radius:12px;font-size:14px;font-weight:600`;
     d.textContent = msg; $('toasts').appendChild(d);
-    setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 320); }, 2600);
+    setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 320); }, ms);
   },
   banner(title, sub, color, small) {
     const b = $('banner'), t = $('bannerTitle');
@@ -1228,7 +1283,7 @@ function setupInput() {
 let lastT = performance.now();
 function frame(now) {
   const realDt = Math.min(0.25, Math.max(0, (now - lastT) / 1000)); lastT = now;
-  const dt = Math.min(0.05, realDt);                                  // physics step clamp
+  const dt = Math.min(0.05, realDt);
   try {
     GameEngine.update(dt, realDt);
     UIController.updateHud(dt);
@@ -1236,12 +1291,12 @@ function frame(now) {
   } catch (err) { console.error(err); }
   requestAnimationFrame(frame);
 }
-(async function boot() {
+window.addEventListener('error', e => { try { UIController.toast('Script error: ' + e.message, 'err', 6000); } catch (_) {} });
+(function boot() {
   if (!window.tailwind) document.documentElement.classList.add('no-tw');
   Renderer.resize(); setupInput(); UIController.init();
   requestAnimationFrame(frame);
-  const online = await NetworkManager.connect();
-  UIController.setConn(online);
+  NetworkManager.connect();          // updates the status line when done
 })();
 </script>
 </body>

@@ -1,28 +1,21 @@
-# ⭕ Ring Royale — 2D Neon Battle Royale
+# ⭕ Ring Royale — 2D Neon Battle Royale (v1.1)
 
-Top-down multiplayer battle royale in one HTML file, plus a tiny relay server with no dependencies.
-
-## Run (Codespaces or local)
+## Run
     node server.js            # Node 18+, no npm install
-Open the forwarded port 3000 (or http://localhost:3000).
-- `/?fast` — 8s battle phase + 14s ring collapse (for testing)
-- `/health` — server check
+Open port 3000 in a normal browser tab (Codespaces: Ports tab → 🌐).
+- `/?fast` — short rounds for testing · `/health` — must show "ringRoyale": true
+
+## If "Create Room" makes an OFFLINE room
+The menu shows the reason in yellow under the status line. Common causes:
+| Message | Fix |
+|---|---|
+| Port 3000 is running a different server | The quiz server is still running. Ctrl+C it (or `pkill -f "node server.js"`), then `node server.js` in the Ring Royale folder |
+| Cannot reach the server | Start `node server.js` |
+| Redirected (sign-in) | Reload the page in a normal browser tab and sign in to GitHub |
+| Live connection refused / timed out | WebSockets are blocked: use a normal Edge/Chrome tab, not the VS Code preview |
 
 ## Play with friends
-1. Ports tab → port 3000 → **Port Visibility → Organization** (or Public).
-2. Create Room → **Copy link** → share it. Friends paste the link or 4-letter code.
-3. Host adds AI bots if needed → **Start Match**.
-
-Opening `index.html` directly (file://) runs **offline mode** with Quick Solo and local bot rooms.
+Ports tab → port 3000 → Port Visibility → Organization. Then Create Room → Copy link → share the link.
 
 ## Controls
-| Desktop | Mobile |
-|---|---|
-| WASD / Arrows: move | Left stick: move |
-| Mouse: aim, Click / Space: fire | Right stick: aim and fire |
-| M: mute, Q / E: switch spectate target | |
-
-## How it works
-- The room **host's browser is authoritative**. It runs the bots, hits, zone damage and the win check, then broadcasts 20 Hz snapshots and events. Each client sends its own position and shots at 30 Hz.
-- `server.js` only routes messages between players in a room. Rooms close when the host leaves.
-- Tune gameplay in the `CONFIG` block at the top of the script (timers, damage, speeds, bot range).
+WASD/Arrows move · Mouse aim · Click/Space fire · M mute · Q/E switch who you're spectating · Mobile: two on-screen sticks
