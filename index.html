@@ -1,365 +1,1248 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Incident Commander – Team Simulation</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Ring Royale — Neon Battle Royale</title>
+<script src="https://cdn.tailwindcss.com" onerror="document.documentElement.classList.add('no-tw')"></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22none%22 stroke=%22%2322d3ee%22 stroke-width=%2210%22/%3E%3C/svg%3E">
 <style>
-  :root{--blue:#0D54FF;--navy:#001E82;--pink:#E5007D;--purple:#7B2CBF;--green:#00A870;--amber:#F5A623;--red:#E0243A;--ink:#141B2D;--muted:#5B6478;--line:#E3E8F2;--bg:#F5F7FC}
-  *{box-sizing:border-box}
-  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg)}
-  header{background:linear-gradient(90deg,var(--navy),var(--blue) 60%,var(--pink));color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
-  header h1{margin:0;font-size:20px;letter-spacing:.3px}
-  header .tag{font-size:13px;opacity:.9}
-  main{max-width:1180px;margin:0 auto;padding:24px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(13,84,255,.05)}
-  .grid{display:grid;gap:18px}
-  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:2fr 1fr}
-  @media(max-width:860px){.g2,.g3{grid-template-columns:1fr}}
-  h2{margin:0 0 8px;font-size:22px} h3{margin:0 0 10px;font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
-  label{font-weight:600;font-size:14px}
-  input{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:16px;margin:6px 0 12px}
-  input:focus{outline:none;border-color:var(--blue)}
-  button{cursor:pointer;border:0;border-radius:10px;padding:12px 18px;font-size:15px;font-weight:600;background:var(--blue);color:#fff;transition:.15s}
-  button:hover{filter:brightness(1.08);transform:translateY(-1px)} button:disabled{opacity:.45;cursor:not-allowed;transform:none}
-  button.pink{background:var(--pink)} button.ghost{background:#fff;color:var(--blue);border:1.5px solid var(--blue);padding:9px 14px;font-size:14px}
-  .err{color:var(--red);font-size:14px;min-height:18px;margin-bottom:8px}
-  .code{font-size:56px;font-weight:800;letter-spacing:10px;color:var(--blue);margin:6px 0;user-select:all}
-  .chips{display:flex;flex-wrap:wrap;gap:8px}
-  .chip{padding:6px 12px;border-radius:999px;background:#EEF3FF;color:var(--navy);font-size:14px;font-weight:600}
-  .chip.done{background:var(--green);color:#fff}
-  .muted{color:var(--muted)}
-  .scen-time{display:inline-block;background:var(--pink);color:#fff;font-weight:700;font-size:13px;padding:4px 10px;border-radius:6px}
-  .scen-title{font-size:28px;font-weight:800;margin:10px 0 6px}
-  .scen-text{font-size:18px;line-height:1.5}
-  .opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
-  @media(max-width:640px){.opts{grid-template-columns:1fr}}
-  .opt{display:flex;gap:12px;align-items:flex-start;text-align:left;background:#fff;color:var(--ink);border:2px solid var(--line);font-weight:500;padding:14px;line-height:1.35;font-size:16px;border-radius:10px}
-  .opt.sel{border-color:var(--blue);background:#EEF3FF}
-  .k{flex:0 0 32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:800}
-  .k0{background:var(--blue)}.k1{background:var(--pink)}.k2{background:var(--purple)}.k3{background:var(--amber)}
-  .timer{display:flex;align-items:center;gap:12px}
-  .tbar{flex:1;height:10px;background:var(--line);border-radius:6px;overflow:hidden}
-  .tbar>div{height:100%;background:linear-gradient(90deg,var(--blue),var(--pink));transition:width .25s linear}
-  .tnum{font-weight:800;font-size:22px;min-width:48px;text-align:right}
-  .metric{margin-bottom:12px}
-  .metric .lbl{display:flex;justify-content:space-between;font-weight:600;font-size:14px;margin-bottom:4px}
-  .mbar{height:12px;background:var(--line);border-radius:6px;overflow:hidden}
-  .mbar>div{height:100%;border-radius:6px;transition:width .8s ease}
-  .delta{font-weight:800;font-size:13px;margin-left:6px}.up{color:var(--green)}.down{color:var(--red)}
-  .bars .row{display:flex;align-items:center;gap:10px;margin:8px 0}
-  .bars .row .b{flex:1;height:26px;background:var(--line);border-radius:6px;overflow:hidden}
-  .bars .row .b>div{height:100%;transition:width .8s ease}
-  .lesson{margin-top:14px;padding:14px 16px;border-left:5px solid var(--green);background:#F0FBF6;border-radius:8px;font-size:16px}
-  table{width:100%;border-collapse:collapse} td{padding:8px 6px;border-bottom:1px solid var(--line);font-size:15px}
-  .lb tr:nth-child(1) td:first-child::before{content:"🥇 "} .lb tr:nth-child(2) td:first-child::before{content:"🥈 "} .lb tr:nth-child(3) td:first-child::before{content:"🥉 "}
-  .big{font-size:44px;font-weight:800;color:var(--blue)}
-  .center{text-align:center}
-  .row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-  .podium{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin:20px 0}
-  .pod{width:150px;text-align:center}.pod .blk{border-radius:10px 10px 0 0;color:#fff;font-weight:800;font-size:28px;display:grid;place-items:center}
-  .confetti{position:fixed;top:-10px;width:10px;height:14px;animation:fall linear forwards;z-index:9}
-  @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
-  .status{position:fixed;bottom:10px;right:12px;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:var(--muted)}
-  .leave{position:fixed;bottom:10px;left:12px;font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline}
+  /* Critical styles (work even if the Tailwind CDN is blocked) */
+  /* ---- Structural layout (independent of Tailwind) ---- */
+  #hud { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+  #hudTL { position: absolute; top: 12px; left: 12px; display: flex; gap: 16px; align-items: center; padding: 8px 16px; border-radius: 16px; }
+  #hudTC { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); }
+  #phaseBox { border-radius: 16px; padding: 8px 24px; text-align: center; }
+  #hudTR { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  #hudTR > div:last-child { display: flex; gap: 8px; pointer-events: auto; }
+  #killFeed { position: absolute; left: 12px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; width: 260px; }
+  #hpPanel { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); width: min(360px, 80vw); border-radius: 16px; padding: 10px 16px; }
+  #specPanel { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 16px; pointer-events: auto; white-space: nowrap; }
+  #touch { position: fixed; left: 0; right: 0; bottom: 96px; z-index: 20; padding: 0 24px; display: flex; justify-content: space-between; pointer-events: none; }
+  #touch .stick { pointer-events: auto; }
+  #menu, #lobby, #over { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; background: rgba(10,14,23,.62); }
+  #over { background: rgba(10,14,23,.78); }
+  #toasts { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  #banner { position: fixed; left: 50%; top: 38%; z-index: 40; text-align: center; pointer-events: none; }
+  #bannerTitle { font-size: clamp(2.4rem, 8vw, 4.5rem); font-weight: 900; letter-spacing: .12em; }
+  #bannerSub { margin-top: 8px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: #cbd5e1; }
+  #hpLag, #hpFill { position: absolute; top: 0; bottom: 0; left: 0; }
+
+  #specPanel button { white-space: nowrap; }
+  /* Small screens: stack the HUD so nothing overlaps */
+  @media (max-width: 640px) {
+    #hudTC { left: 10px; top: 10px; transform: none; }
+    #phaseBox { padding: 4px 14px; min-width: 132px !important; }
+    #phaseTimer { font-size: 1.6rem !important; }
+    #hudTL { top: 86px; left: 10px; padding: 6px 12px; gap: 10px; }
+    #hudTR { top: 10px; right: 10px; }
+    #minimap { width: 96px !important; height: 96px !important; }
+    #killFeed { top: 146px; bottom: auto; left: 10px; width: 210px; }
+    #specPanel { flex-wrap: wrap; justify-content: center; width: 94vw; white-space: normal; }
+    #touch { bottom: 92px; padding: 0 16px; }
+    .stick { width: 120px; height: 120px; }
+  }
+  /* ---- Fallback look when the Tailwind CDN is blocked (e.g. corporate proxy) ---- */
+  .no-tw #menu > div, .no-tw #lobby > div, .no-tw #over > div { width: 100%; max-width: 460px; margin: auto; }
+  .no-tw #over > div { max-width: 540px; text-align: center; }
+  .no-tw .glass.rounded-3xl { border-radius: 24px; padding: 24px; }
+  .no-tw h1 { font-size: 3rem; font-weight: 900; margin: 0; text-align: center; color: #67e8f9; }
+  .no-tw #menu .text-center { text-align: center; margin-bottom: 16px; }
+  .no-tw h2 { font-size: 2.2rem; margin: 4px 0; }
+  .no-tw label, .no-tw .uppercase { text-transform: uppercase; font-size: 11px; letter-spacing: .12em; color: #94a3b8; font-weight: 700; }
+  .no-tw #phaseTimer { font-size: 2.2rem; font-weight: 900; color: #fff; text-transform: none; letter-spacing: .05em; }
+  .no-tw #hudAlive, .no-tw #hudKills, .no-tw #lobbyCount { font-size: 1.3rem; font-weight: 900; color: #6ee7b7; }
+  .no-tw #lobbyCode { font-size: 2.4rem; font-weight: 900; color: #67e8f9; letter-spacing: .25em; }
+  .no-tw input { width: 100%; padding: 12px 14px; border-radius: 14px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 16px; margin: 6px 0 14px; outline: none; }
+  .no-tw input:focus { border-color: #22d3ee; }
+  .no-tw button { border: 1px solid #334155; border-radius: 12px; padding: 10px 14px; background: #1e293b; color: #e2e8f0; font-weight: 800; cursor: pointer; }
+  .no-tw .swatch { border-radius: 9999px; padding: 0; border: 2px solid transparent; } .no-tw .swatch.sel { border-color: #fff; }
+  .no-tw #menuBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .no-tw #menu .flex, .no-tw #lobby .flex, .no-tw #over .flex { display: flex; gap: 10px; align-items: center; }
+  .no-tw #menu .flex input { margin: 0; }
+  .no-tw #swatches { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 18px; }
+  .no-tw #roster { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; margin: 8px 0 14px; }
+  .no-tw #roster > div { padding: 8px 12px; border-radius: 12px; background: #0f172a; }
+  .no-tw #btnStart, .no-tw #btnAgain { flex: 1; color: #04131a; }
+  .no-tw #hostBots button { flex: 1; }
+  .no-tw #lobby > div > div:first-child { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #334155; padding-bottom: 14px; margin-bottom: 14px; }
+  .no-tw .text-slate-400, .no-tw .text-slate-500 { color: #94a3b8; font-size: 12px; }
+  .no-tw .w-px { width: 1px; height: 32px; background: #334155; }
+  .no-tw .h-3\.5 { height: 14px; } .no-tw .relative { position: relative; } .no-tw .overflow-hidden { overflow: hidden; }
+  .no-tw .rounded-full { border-radius: 9999px; } .no-tw .bg-slate-900 { background: #0f172a; }
+  .no-tw #hpPanel > div:first-child { display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; margin-bottom: 6px; }
+  .no-tw .feed-item { padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .no-tw .text-5xl { font-size: 3rem; } .no-tw .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .no-tw #overTable > div { padding: 6px 8px; border-radius: 8px; } .no-tw #overTable .text-right, .no-tw #over .text-right { text-align: right; }
+  .no-tw .w-2\.5 { width: 10px; height: 10px; } .no-tw .w-3\.5 { width: 14px; height: 14px; } .no-tw .inline-block { display: inline-block; }
+
+  .hidden { display: none !important; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0e17; color: #e2e8f0;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; touch-action: none; }
+  canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: crosshair; }
+  .glass { background: rgba(10, 16, 30, .82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, .18); }
+  .neon-text { text-shadow: 0 0 18px rgba(34, 211, 238, .55); }
+  .btn { transition: transform .12s, filter .15s, box-shadow .15s; }
+  .btn:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+  .btn:active:not(:disabled) { transform: translateY(1px) scale(.98); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  input { user-select: text; -webkit-user-select: text; }
+  #vignette { transition: opacity .25s; box-shadow: inset 0 0 120px 30px rgba(239, 35, 60, .65); animation: vpulse .9s ease-in-out infinite; }
+  @keyframes vpulse { 50% { box-shadow: inset 0 0 180px 60px rgba(239, 35, 60, .85); } }
+  .banner-show { animation: bannerIn 2.2s ease forwards; }
+  @keyframes bannerIn { 0% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(.96); } }
+  .feed-item { animation: feedIn .2s ease-out; transition: opacity .4s; }
+  @keyframes feedIn { from { opacity: 0; transform: translateX(-14px); } }
+  .swatch { width: 30px; height: 30px; border-radius: 9999px; cursor: pointer; border: 2px solid transparent; transition: transform .12s; }
+  .swatch:hover { transform: scale(1.12); }
+  .swatch.sel { border-color: #fff; transform: scale(1.15); }
+  .stick { width: 130px; height: 130px; border-radius: 9999px; background: rgba(15, 23, 42, .45); border: 2px solid rgba(34, 211, 238, .35); position: relative; touch-action: none; }
+  .knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 9999px; background: rgba(34, 211, 238, .55); border: 1px solid #a5f3fc; pointer-events: none; }
+  .stick.fire { border-color: rgba(244, 63, 94, .5); } .stick.fire .knob { background: rgba(244, 63, 94, .6); border-color: #fecdd3; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, .35); border-radius: 9999px; }
 </style>
 </head>
-<body>
-<header><h1>🚨 Incident Commander</h1><span class="tag" id="hdr">A live team simulation</span></header>
-<main id="app"></main>
-<div class="status" id="status" style="display:none"></div>
-<span class="leave" id="leave" style="display:none">↩ Leave room</span>
+<body class="bg-[#0a0e17] text-slate-200 select-none">
+
+<canvas id="game"></canvas>
+<div id="vignette" class="pointer-events-none fixed inset-0 z-10 opacity-0"></div>
+<div id="banner" class="hidden" style="transform:translate(-50%,-50%)">
+  <div id="bannerTitle" class="text-5xl sm:text-7xl font-black tracking-widest neon-text text-cyan-300">FIGHT!</div>
+  <div id="bannerSub" class="mt-2 text-sm sm:text-base font-semibold tracking-widest uppercase text-slate-300"></div>
+</div>
+<div id="toasts"></div>
+
+<!-- ============================== IN-GAME HUD ============================== -->
+<div id="hud" class="hidden fixed inset-0 z-20 pointer-events-none">
+  <!-- Top-left: alive + eliminations -->
+  <div id="hudTL" class="glass">
+    <div><div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Alive</div>
+      <div id="hudAlive" class="text-xl font-black text-emerald-300">0/0</div></div>
+    <div class="w-px h-8 bg-slate-700"></div>
+    <div><div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Elims</div>
+      <div id="hudKills" class="text-xl font-black text-cyan-300">0</div></div>
+  </div>
+  <!-- Top-center: phase + timer -->
+  <div id="hudTC">
+    <div id="phaseBox" class="glass rounded-2xl px-6 py-2 text-center border-cyan-400/40" style="min-width:190px">
+      <div id="phaseLabel" class="text-[11px] font-bold uppercase tracking-[.25em] text-cyan-300">Battle Phase</div>
+      <div id="phaseTimer" class="text-4xl font-black tabular-nums tracking-wider text-white leading-tight">00:30</div>
+      <div id="phaseSub" class="text-[10px] uppercase tracking-widest text-slate-400">Ring closes in</div>
+    </div>
+  </div>
+  <!-- Top-right: minimap + buttons -->
+  <div id="hudTR">
+    <div class="glass rounded-2xl p-1.5"><canvas id="minimap" width="150" height="150" class="block rounded-xl" style="width:130px;height:130px"></canvas></div>
+    <div class="flex gap-2 pointer-events-auto">
+      <button id="btnMute" class="btn glass rounded-xl px-3 py-1.5 text-sm" title="Mute / unmute (M)">🔊</button>
+      <button id="btnExit" class="btn glass rounded-xl px-3 py-1.5 text-xs font-bold text-rose-300" title="Leave match">EXIT</button>
+    </div>
+  </div>
+  <!-- Bottom-left: kill feed -->
+  <div id="killFeed"></div>
+  <!-- Bottom-center: HP -->
+  <div id="hpPanel" class="glass">
+    <div class="flex justify-between text-xs font-bold mb-1.5">
+      <span id="hpName" class="text-slate-200 truncate">Pilot</span>
+      <span id="hpText" class="text-emerald-300 tabular-nums">100 HP</span>
+    </div>
+    <div class="relative h-3.5 rounded-full bg-slate-900 border border-slate-700 overflow-hidden">
+      <div id="hpLag" class="absolute inset-y-0 left-0 bg-rose-200/80" style="width:100%"></div>
+      <div id="hpFill" class="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-cyan-400" style="width:100%"></div>
+    </div>
+  </div>
+  <!-- Bottom-center: spectator banner -->
+  <div id="specPanel" class="hidden glass" style="border-color:rgba(251,113,133,.4)">
+    <button id="btnSpecPrev" class="btn px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-bold">◀ Prev</button>
+    <div class="text-center min-w-[160px]">
+      <div class="text-[10px] uppercase tracking-widest text-rose-300 font-bold">Eliminated</div>
+      <div class="text-sm">Spectating: <b id="specName" class="text-white">—</b></div>
+    </div>
+    <button id="btnSpecNext" class="btn px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-bold">Next ▶</button>
+    <button id="btnSpecLeave" class="btn px-3 py-1.5 rounded-lg bg-rose-600/80 text-xs font-bold text-white">Leave to Lobby</button>
+  </div>
+</div>
+
+<!-- Touch controls -->
+<div id="touch" class="hidden">
+  <div id="stickMove" class="stick pointer-events-auto"><div class="knob"></div></div>
+  <div id="stickAim" class="stick fire pointer-events-auto"><div class="knob"></div></div>
+</div>
+
+<!-- ============================== MAIN MENU ============================== -->
+<div id="menu" class="fixed inset-0 z-30 flex items-center justify-center p-4 overflow-y-auto bg-[#0a0e17]/60">
+  <div class="w-full max-w-md my-auto">
+    <div class="text-center mb-5">
+      <div class="text-xs font-bold tracking-[.3em] uppercase text-cyan-400/80">2D Neon Battle Royale</div>
+      <h1 class="text-5xl sm:text-6xl font-black tracking-tight neon-text text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-400 to-fuchsia-400" style="color:#67e8f9">RING ROYALE</h1>
+      <p class="text-slate-400 text-sm mt-1">30 seconds to fight. Then the ring closes. Last one standing wins.</p>
+    </div>
+    <div class="glass rounded-3xl p-6 shadow-2xl">
+      <div class="flex items-center justify-between text-xs mb-4">
+        <span class="flex items-center gap-2"><span id="connDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span><span id="connText">Checking multiplayer server…</span></span>
+        <span id="connBadge" class="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 font-mono text-[10px]">…</span>
+      </div>
+      <label for="inName" class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Nickname</label>
+      <input id="inName" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Enter your name…"
+        class="w-full px-4 py-3 rounded-2xl bg-slate-900/90 border border-slate-700 focus:border-cyan-400 outline-none text-white font-semibold mb-4" />
+      <div class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Avatar colour</div>
+      <div id="swatches" class="flex flex-wrap gap-2.5 mb-5"></div>
+      <div id="menuBtns" class="grid grid-cols-2 gap-3 mb-4">
+        <button id="btnSolo" class="btn py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm tracking-wide" style="background:#10b981">⚡ Quick Solo + Bots</button>
+        <button id="btnCreate" class="btn py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black text-sm tracking-wide" style="background:#0ea5e9">＋ Create Room</button>
+      </div>
+      <div class="flex items-center gap-3 my-3 text-[11px] uppercase tracking-widest text-slate-500"><div class="flex-1 h-px bg-slate-700"></div>or join a room<div class="flex-1 h-px bg-slate-700"></div></div>
+      <div class="flex gap-2">
+        <input id="inCode" maxlength="40" autocomplete="off" spellcheck="false" placeholder="CODE"
+          class="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-slate-900/90 border border-slate-700 focus:border-fuchsia-400 outline-none text-white text-center font-black tracking-[.35em] uppercase" />
+        <button id="btnJoin" class="btn px-6 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white font-black text-sm" style="background:#a21caf">JOIN</button>
+      </div>
+      <p class="text-[11px] text-slate-500 mt-4 leading-relaxed">Desktop: <b>WASD / Arrows</b> move · <b>Mouse</b> aim · <b>Click / Space</b> fire · <b>M</b> mute.<br>Mobile: left stick moves, right stick aims and fires.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== LOBBY ============================== -->
+<div id="lobby" class="hidden fixed inset-0 z-30 flex items-center justify-center p-4 overflow-y-auto bg-[#0a0e17]/60">
+  <div class="w-full max-w-md my-auto glass rounded-3xl p-6 shadow-2xl">
+    <div class="flex items-start justify-between pb-4 mb-4 border-b border-slate-700/70">
+      <div>
+        <div class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Room code</div>
+        <div class="flex items-center gap-2">
+          <span id="lobbyCode" class="text-4xl font-black tracking-[.25em] text-cyan-300 neon-text">----</span>
+          <button id="btnCopy" class="btn px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-600 text-xs font-bold">Copy link</button>
+        </div>
+        <div id="lobbyMode" class="text-[11px] text-slate-400 mt-1"></div>
+      </div>
+      <div class="text-right">
+        <div class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Fighters</div>
+        <div id="lobbyCount" class="text-2xl font-black text-white">1/12</div>
+      </div>
+    </div>
+    <div class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Roster</div>
+    <div id="roster" class="space-y-2 max-h-64 overflow-y-auto pr-1 mb-4"></div>
+    <div id="hostBots" class="flex gap-2 mb-4">
+      <button id="btnAddBot" class="btn flex-1 py-2.5 rounded-xl bg-slate-800 border border-cyan-500/40 text-cyan-300 text-xs font-black uppercase tracking-wider">＋ Add AI Bot</button>
+      <button id="btnRemBot" class="btn px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-slate-300 text-xs font-black uppercase">－ Bot</button>
+    </div>
+    <div class="flex gap-3">
+      <button id="btnLeaveLobby" class="btn px-4 py-3 rounded-2xl bg-slate-800 border border-slate-600 font-bold text-sm">Leave</button>
+      <button id="btnStart" class="btn flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-slate-950 font-black tracking-wider uppercase" style="background:#34d399">Start Match</button>
+    </div>
+    <p id="lobbyHint" class="text-center text-xs text-slate-400 mt-3"></p>
+  </div>
+</div>
+
+<!-- ============================== VICTORY / SUMMARY ============================== -->
+<div id="over" class="hidden fixed inset-0 z-30 flex items-center justify-center p-4 overflow-y-auto bg-[#0a0e17]/75">
+  <div class="w-full max-w-lg my-auto glass rounded-3xl p-6 shadow-2xl text-center">
+    <div class="text-5xl mb-1">🏆</div>
+    <div id="overTag" class="text-xs font-bold uppercase tracking-[.3em] text-amber-300">Victory Royale</div>
+    <h2 id="overWinner" class="text-4xl font-black text-white neon-text truncate">Champion</h2>
+    <p id="overSub" class="text-slate-400 text-sm mb-4"></p>
+    <div class="rounded-2xl bg-slate-900/70 border border-slate-700/70 p-2 mb-5 text-left">
+      <div class="grid grid-cols-[40px_1fr_60px_70px] text-[10px] uppercase tracking-widest text-slate-400 font-bold px-2 py-1" style="display:grid;grid-template-columns:40px 1fr 60px 70px">
+        <span>#</span><span>Fighter</span><span class="text-right">Elims</span><span class="text-right">Survived</span></div>
+      <div id="overTable" class="max-h-64 overflow-y-auto"></div>
+    </div>
+    <div class="flex gap-3">
+      <button id="btnOverLeave" class="btn px-4 py-3 rounded-2xl bg-slate-800 border border-slate-600 font-bold text-sm">Leave</button>
+      <button id="btnOverLobby" class="btn px-4 py-3 rounded-2xl bg-slate-800 border border-cyan-500/40 text-cyan-300 font-bold text-sm">Lobby</button>
+      <button id="btnAgain" class="btn flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-slate-950 font-black tracking-wider uppercase" style="background:#34d399">Play Again</button>
+    </div>
+  </div>
+</div>
 
 <script>
-const $ = s => document.querySelector(s);
-const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const LETTERS = ['A','B','C','D'];
-const COLORS = ['var(--blue)','var(--pink)','var(--purple)','var(--amber)'];
-const MET = {uptime:['⚡ Uptime','var(--blue)'],trust:['🤝 Stakeholder trust','var(--pink)'],budget:['💰 Budget','var(--green)'],morale:['💙 Team morale','var(--purple)']};
-let S = null, es = null, tick = null, poller = null, skew = 0, lastPhaseKey = '', lastSig = '', fails = 0;
-const sess = JSON.parse(sessionStorage.getItem('ic') || '{}');
-const save = () => sessionStorage.setItem('ic', JSON.stringify(sess));
-const clearSess = () => { for (const k in sess) delete sess[k]; sessionStorage.removeItem('ic'); };
-const setStatus = (t, bad) => { const el = $('#status'); el.style.display = t ? 'block' : 'none'; el.textContent = t; el.style.color = bad ? 'var(--red)' : 'var(--muted)'; };
+'use strict';
+/* =============================================================================
+   CONFIG
+   ============================================================================= */
+const QS = new URLSearchParams(location.search);
+const FAST = QS.has('fast');                       // ?fast  -> short phases for testing
+const TAU = Math.PI * 2;
+const CONFIG = {
+  ARENA_R: 1100, PLAYER_R: 18, SPEED: 260, MAX_HP: 100,
+  BOLT_SPEED: 820, BOLT_DMG: 25, BOLT_LIFE: 0.95, BOLT_R: 5, FIRE_CD: 0.25, KNOCKBACK: 280,
+  PHASE1: FAST ? 8 : 30,             // combat countdown (s)
+  SHRINK: FAST ? 14 : 50,            // ring collapse duration (s)
+  ZONE_DPS: 10, ZONE_TICK: 5,        // 10 HP/s applied in 5 HP ticks
+  MAX_FIGHTERS: 12, SOLO_BOTS: 5,
+  SNAP_MS: 50, INPUT_MS: 33,         // host snapshot 20 Hz, client input 30 Hz
+  BOT_SPEED_MUL: 0.88, BOT_RANGE: 560,
+  COLORS: ['#22d3ee', '#f43f5e', '#a3e635', '#c084fc', '#fbbf24', '#38bdf8', '#fb7185', '#34d399', '#f97316', '#e879f9', '#facc15', '#2dd4bf'],
+  BOT_NAMES: ['Nova', 'Cipher', 'Volt', 'Echo', 'Blaze', 'Kestrel', 'Zero', 'Apex', 'Phantom', 'Rogue', 'Vex', 'Onyx'],
+};
 
-window.addEventListener('error', e => setStatus('⚠ ' + e.message, true));
-window.addEventListener('unhandledrejection', e => setStatus('⚠ ' + (e.reason && e.reason.message || e.reason), true));
+/* ---------- small utilities ---------- */
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const rand = (a, b) => a + Math.random() * (b - a);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = s => { s = Math.max(0, Math.ceil(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+const angDiff = (a, b) => ((((b - a + Math.PI) % TAU) + TAU) % TAU) - Math.PI;
+const turnToward = (a, b, max) => a + clamp(angDiff(a, b), -max, max);
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; }
 
-// Pull a 5-character room code out of a code, an invite link or a full invite message
-function extractCode(t){
-  t = String(t || '').trim();
-  let m = t.match(/[?&]room=([A-Za-z0-9]{5})/); if (m) return m[1].toUpperCase();
-  m = t.match(/room code\s*:?\s*([A-Za-z0-9]{5})/i); if (m) return m[1].toUpperCase();
-  const clean = t.replace(/[^A-Za-z0-9]/g, '');
-  if (clean.length === 5) return clean.toUpperCase();
-  m = t.match(/\b([A-Z0-9]{5})\b/); return m ? m[1] : '';
-}
-
-async function api(path, data){
-  let r;
-  try {
-    r = await fetch(path, {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data||{})});
-  } catch(e) {
-    throw new Error('Could not reach the game server. Check that "node server.js" is running. In Codespaces, open the forwarded URL in a normal browser tab (not the VS Code Simple Browser).');
-  }
-  const ct = r.headers.get('content-type') || '';
-  if (r.redirected || ct.includes('text/html')) throw new Error('The request was redirected, usually to a GitHub sign-in. Reload the page in a normal browser tab, sign in if asked, and try again.');
-  const j = await r.json().catch(()=>({}));
-  if (!r.ok) throw new Error(j.error || ('Server error ' + r.status));
-  return j;
-}
-
-// ---------- Landing ----------
-function landing(msg){
-  $('#leave').style.display = 'none';
-  $('#hdr').textContent = 'A live team simulation';
-  const pre = extractCode(new URLSearchParams(location.search).get('room') || '');
-  $('#app').innerHTML = `
-  <div class="grid g2">
-    <div class="card">
-      <h2>Join the game</h2>
-      <p class="muted">Enter the room code your host shared.</p>
-      <label for="nm">Your name</label><input id="nm" maxlength="24" autocomplete="off" placeholder="e.g. Faizur R" value="${esc(sess.name||'')}">
-      <label for="rc">Room code <span class="muted" style="font-weight:400;font-size:13px">(you can paste the code, link or whole invite)</span></label>
-      <input id="rc" autocomplete="off" spellcheck="false" placeholder="ABCDE" style="text-transform:uppercase;letter-spacing:4px" value="${esc(pre)}">
-      <div class="err" id="jerr">${esc(msg||'')}</div>
-      <button class="pink" id="jbtn" style="width:100%">Join ➜</button>
-    </div>
-    <div class="card">
-      <h2>Host a game</h2>
-      <p class="muted">Create a room, share the code, and screen-share this view in Teams. Your team plays from their own laptops or phones.</p>
-      <ul class="muted" style="line-height:1.8">
-        <li>8 crisis scenarios from a week in the life of a tech team</li>
-        <li>Everyone decides independently, and the team's combined choices change the shared metrics</li>
-        <li>Points for good calls, speed bonuses and streaks</li>
-      </ul>
-      <div class="err" id="herr"></div>
-      <button id="hbtn" style="width:100%">Create room</button>
-    </div>
-  </div>`;
-  const rc = $('#rc');
-  rc.addEventListener('paste', e => {
-    const t = (e.clipboardData || window.clipboardData).getData('text');
-    const c = extractCode(t);
-    if (c) { e.preventDefault(); rc.value = c; }
-  });
-  rc.addEventListener('blur', () => { const c = extractCode(rc.value); if (c) rc.value = c; });
-  // Only intercept Enter; returning false from onkeydown would block ALL typing
-  const onEnter = e => { if (e.key === 'Enter') { e.preventDefault(); join(); } };
-  rc.addEventListener('keydown', onEnter);
-  $('#nm').addEventListener('keydown', onEnter);
-  $('#jbtn').onclick = join;
-  (pre ? $('#nm') : rc).focus();
-  $('#hbtn').onclick = async () => {
-    const b = $('#hbtn'); b.disabled = true; b.textContent = 'Creating…'; $('#herr').textContent = '';
+/* =============================================================================
+   AudioManager — synthesized retro SFX with native Web Audio (no files)
+   ============================================================================= */
+const AudioManager = {
+  ctx: null, master: null, muted: localStorage.getItem('rr_muted') === '1', noiseBuf: null,
+  unlock() {
     try {
-      const j = await api('/api/create');
-      Object.assign(sess, {role:'host', room:j.room, hostKey:j.hostKey}); save(); connect();
-    } catch(e) { $('#herr').textContent = e.message; b.disabled = false; b.textContent = 'Create room'; }
-  };
-}
-async function join(){
-  const name = $('#nm').value.trim();
-  const raw = $('#rc').value;
-  const room = extractCode(raw) || raw.trim().toUpperCase();
-  if (!name) { $('#jerr').textContent = 'Please enter your name.'; return $('#nm').focus(); }
-  if (room.length !== 5) { $('#jerr').textContent = 'Room codes are 5 characters, e.g. K7Q2M.'; return $('#rc').focus(); }
-  const b = $('#jbtn'); b.disabled = true; $('#jerr').textContent = '';
-  try {
-    const j = await api('/api/join', {name, room, pid: sess.room === room ? sess.pid : undefined});
-    Object.assign(sess, {role:'player', room:j.room, pid:j.pid, name}); delete sess.hostKey; save(); connect();
-  } catch(e) { $('#jerr').textContent = e.message; b.disabled = false; }
-}
-
-// ---------- Live connection: push (fast) + polling fallback ----------
-function apply(data){
-  skew = Date.now() - data.now;
-  const sig = JSON.stringify({...data, now:0});
-  if (sig === lastSig) return;
-  lastSig = sig; S = data; render();
-}
-function leave(){
-  if (es) es.close(); clearInterval(poller); clearInterval(tick);
-  clearSess(); S = null; lastSig = ''; lastPhaseKey = '';
-  history.replaceState(null, '', location.pathname); landing();
-}
-function connect(){
-  if (es) es.close(); clearInterval(poller); fails = 0; lastSig = '';
-  $('#leave').style.display = 'inline'; $('#leave').onclick = leave;
-  $('#app').innerHTML = '<div class="card center"><p class="muted">Connecting to room…</p></div>';
-  const q = sess.role === 'host' ? `hostKey=${sess.hostKey}` : `pid=${sess.pid}`;
-  try {
-    es = new EventSource(`/events?room=${sess.room}&${q}`, {withCredentials:true});
-    es.onmessage = e => { try { apply(JSON.parse(e.data)); } catch(_){} };
-    es.onerror = () => {};
-  } catch(_) {}
-  const poll = async () => {
-    try {
-      const r = await fetch(`/api/state?room=${sess.room}&${q}`, {credentials:'include', cache:'no-store'});
-      if (r.status === 404 || r.status === 403) {
-        clearInterval(poller); if (es) es.close(); clearSess();
-        return landing('That room no longer exists (the server may have restarted). Please create or join again.');
+      if (!this.ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+        this.ctx = new AC();
+        this.master = this.ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.35; this.master.connect(this.ctx.destination);
+        const len = this.ctx.sampleRate * 0.6; this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+        const d = this.noiseBuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
       }
-      if (!r.ok || !(r.headers.get('content-type')||'').includes('json')) throw new Error('bad');
-      apply(await r.json()); fails = 0; setStatus('');
-    } catch(_) { if (++fails >= 3) setStatus('⚠ Reconnecting to server…', true); }
-  };
-  poll(); poller = setInterval(poll, 1000);
-}
+      if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    } catch (_) {}
+  },
+  setMuted(m) { this.muted = m; localStorage.setItem('rr_muted', m ? '1' : '0'); if (this.master) this.master.gain.value = m ? 0 : 0.35; },
+  ok() { return this.ctx && !this.muted && this.ctx.state === 'running'; },
+  tone(freq, dur, type = 'square', vol = 0.2, slide = null, delay = 0) {
+    if (!this.ok() || vol <= 0.003) return;
+    const t = this.ctx.currentTime + delay, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, slide), t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.02);
+  },
+  noise(dur, vol = 0.3, freq = 1400, delay = 0) {
+    if (!this.ok() || vol <= 0.003) return;
+    const t = this.ctx.currentTime + delay, s = this.ctx.createBufferSource(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+    s.buffer = this.noiseBuf; f.type = 'lowpass'; f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(80, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(t); s.stop(t + dur + 0.02);
+  },
+  shoot(v = 1) { this.tone(920, 0.09, 'square', 0.07 * v, 300); },
+  hit() { this.tone(260, 0.11, 'sawtooth', 0.16, 90); this.noise(0.08, 0.12, 2500); },
+  hitMarker() { this.tone(1500, 0.06, 'triangle', 0.12, 1900); },
+  zone() { this.tone(110, 0.16, 'sawtooth', 0.12, 70); },
+  elim(v = 1) { this.noise(0.5, 0.35 * v, 1800); this.tone(420, 0.45, 'triangle', 0.18 * v, 40); },
+  tick(final) { this.tone(final ? 1320 : 880, 0.07, 'sine', 0.22); },
+  alarm() { for (let i = 0; i < 3; i++) { this.tone(660, 0.16, 'square', 0.12, null, i * 0.32); this.tone(440, 0.16, 'square', 0.12, null, i * 0.32 + 0.16); } },
+  fight() { this.tone(523, 0.12, 'square', 0.12); this.tone(784, 0.2, 'square', 0.12, null, 0.1); },
+  victory() { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => this.tone(f, i === 5 ? 0.6 : 0.16, 'square', 0.12, null, i * 0.13)); },
+  defeat() { [392, 330, 262].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.14, null, i * 0.18)); },
+};
 
-function remaining(){ return Math.max(0, Math.ceil((S.deadline - (Date.now()-skew))/1000)); }
-function startTick(){
-  clearInterval(tick);
-  tick = setInterval(() => {
-    if (!S || S.phase !== 'question') return clearInterval(tick);
-    const r = remaining(), n = $('#tnum'), b = $('#tbar');
-    if (n) { n.textContent = r + 's'; n.style.color = r <= 10 ? 'var(--red)' : 'var(--ink)'; }
-    if (b) b.style.width = (100*r/S.roundSeconds) + '%';
-  }, 250);
-}
+/* =============================================================================
+   GAME STATE
+   ============================================================================= */
+const G = {
+  screen: 'menu',          // menu | lobby | playing | over
+  myId: 'me', myName: '', myColor: CONFIG.COLORS[0],
+  isHost: false, netRoom: false, roomCode: null, roster: [], botSeq: 0,
+  fighters: new Map(), bolts: [], particles: [], texts: [],
+  elapsed: 0, startT: 0, zt: { x: 0, y: 0 }, zone: { x: 0, y: 0, r: CONFIG.ARENA_R, phase: 1 },
+  lastSec: -1, phaseShown: 1, ending: false, endAt: 0,
+  cam: { x: 0, y: 0 }, zoom: 1, shake: 0, spectate: null, hpLag: 100,
+  W: 0, H: 0, dpr: 1, lastSnap: 0, lastInput: 0,
+};
 
-function metricsHTML(delta){
-  return Object.entries(MET).map(([k,[l,c]]) => {
-    const v = S.metrics[k], d = delta ? delta[k] : 0;
-    return `<div class="metric"><div class="lbl"><span>${l}</span><span>${v}${d?`<span class="delta ${d>0?'up':'down'}">${d>0?'▲ +':'▼ '}${d}</span>`:''}</span></div>
-      <div class="mbar"><div style="width:${v}%;background:${v<30?'var(--red)':c}"></div></div></div>`;
-  }).join('');
-}
-function boardHTML(limit){
-  const rows = S.players.slice(0, limit||99).map(p => `<tr><td>${esc(p.name)}${p.streak>=3?' 🔥':''}</td><td style="text-align:right;font-weight:700">${p.score}</td></tr>`).join('');
-  return rows ? `<table class="lb">${rows}</table>` : '<p class="muted">No players yet.</p>';
-}
-function scenHTML(){
-  const s = S.scenario;
-  return `<span class="scen-time">${esc(s.time)} · Round ${S.round+1}/${S.totalRounds}</span>
-  <div class="scen-title">${esc(s.title)}</div><div class="scen-text">${esc(s.text)}</div>`;
-}
-function timerHTML(){
-  const r = remaining();
-  return `<div class="timer" style="margin-top:14px"><div class="tbar"><div id="tbar" style="width:${100*r/S.roundSeconds}%"></div></div><div class="tnum" id="tnum">${r}s</div></div>`;
-}
-function revealBars(){
-  const R = S.reveal, total = R.counts.reduce((a,b)=>a+b,0) || 1;
-  return `<div class="bars">${S.scenario.options.map((o,i) => `
-    <div class="row"><span class="k k${i}">${LETTERS[i]}</span>
-      <div style="flex:2;font-size:15px">${esc(o)} ${i===R.best?'<b style="color:var(--green)">✔ best call</b>':''}<span class="muted" style="font-size:12px"> · ${R.optionPoints[i]} pts</span></div>
-      <div class="b"><div style="width:${100*R.counts[i]/total}%;background:${i===R.best?'var(--green)':COLORS[i]}"></div></div>
-      <b style="min-width:28px;text-align:right">${R.counts[i]}</b></div>`).join('')}</div>
-    ${R.noAnswers?'<p class="err">Nobody decided, so the indecision hit every metric (−6).</p>':''}
-    <div class="lesson">💡 ${esc(R.lesson)}</div>`;
-}
-function confetti(){
-  for (let i=0;i<90;i++){ const d=document.createElement('div'); d.className='confetti';
-    d.style.left=Math.random()*100+'vw'; d.style.background=COLORS[i%4];
-    d.style.animationDuration=(2+Math.random()*2.5)+'s'; d.style.animationDelay=Math.random()*.8+'s';
-    document.body.appendChild(d); setTimeout(()=>d.remove(),5500); }
-}
-function copy(txt, btn, label){
-  const done = () => { btn.textContent = '✔ Copied'; setTimeout(()=>btn.textContent = label, 1500); };
-  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(done, ()=>prompt('Copy this:', txt));
-  else prompt('Copy this:', txt);
-}
+/* =============================================================================
+   NetworkManager — WebSocket relay (host-authoritative rooms)
+   ============================================================================= */
+const NetworkManager = {
+  ws: null, online: false,
+  async connect() {
+    const custom = QS.get('server');
+    if (location.protocol === 'file:' && !custom) return false;
+    if (!custom) {                                   // only open a socket if our server is present
+      try {
+        const r = await fetch('health', { cache: 'no-store' });
+        const j = await r.json(); if (!j.ringRoyale) return false;
+      } catch (_) { return false; }
+    }
+    const url = custom || ((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + location.pathname.replace(/[^/]*$/, '') + 'ws');
+    return new Promise(resolve => {
+      let done = false; const fin = v => { if (!done) { done = true; resolve(v); } };
+      try { this.ws = new WebSocket(url); } catch (_) { return fin(false); }
+      const to = setTimeout(() => { fin(false); try { this.ws.close(); } catch (_) {} }, 4000);
+      this.ws.onopen = () => { clearTimeout(to); this.online = true; fin(true); };
+      this.ws.onclose = () => { clearTimeout(to); const was = this.online; this.online = false; fin(false); if (was) UIController.onDisconnected(); };
+      this.ws.onerror = () => {};
+      this.ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } this.onMessage(m); };
+    });
+  },
+  send(o) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(o)); },
+  toHost(d) { this.send({ t: 'th', d }); },
+  broadcast(d) { if (G.netRoom && G.isHost) this.send({ t: 'bc', d }); },
+  toPeer(to, d) { this.send({ t: 'tp', to, d }); },
+  onMessage(m) {
+    switch (m.t) {
+      case 'created':
+        G.myId = m.id; G.roomCode = m.code; G.isHost = true; G.netRoom = true;
+        G.roster = [{ id: m.id, name: G.myName, color: G.myColor, isBot: false, isHost: true }];
+        UIController.showLobby(); GameEngine.broadcastLobby();
+        UIController.toast(`Room ${m.code} created — share the code!`, 'ok');
+        break;
+      case 'joined':
+        G.myId = m.id; G.roomCode = m.code; G.isHost = false; G.netRoom = true; G.roster = [];
+        UIController.showLobby(); UIController.toast(`Joined room ${m.code}`, 'ok');
+        break;
+      case 'err': UIController.toast(m.msg, 'err'); break;
+      case 'peerJoin': GameEngine.onPeerJoin(m); break;
+      case 'peerLeave': GameEngine.onPeerLeave(m.id); break;
+      case 'fromPeer': if (G.isHost) GameEngine.onPeerMsg(m.from, m.d || {}); break;
+      case 'fromHost':
+        if (G.isHost || !m.d) return;
+        if (m.d.k === 'reject') { UIController.toast(m.d.msg || 'Could not join', 'err'); UIController.leaveRoom(true); return; }
+        GameEngine.applyEvent(m.d);
+        break;
+      case 'hostLeft':
+        G.netRoom = false; UIController.toast('The host closed the room.', 'err'); UIController.leaveRoom(true);
+        break;
+    }
+  },
+};
 
-// ---------- Render ----------
-function render(){
-  const key = S.phase + S.round; const changed = key !== lastPhaseKey; lastPhaseKey = key;
-  $('#hdr').textContent = `Room ${S.code} · ${S.playerCount} player${S.playerCount===1?'':'s'}`;
-  if (S.role === 'host') hostView(); else playerView();
-  if (S.phase === 'question') startTick();
-  if (changed && S.phase === 'end') confetti();
-}
+/* =============================================================================
+   BotAI — stays in the ring, chases centre when it shrinks, strafes, dodges, shoots
+   ============================================================================= */
+const BotAI = {
+  update(b, dt) {
+    const ai = b.ai || (b.ai = { strafe: Math.random() < 0.5 ? 1 : -1, swapT: rand(0.8, 2), fireT: rand(0.4, 1.2), wander: Math.random() * TAU, aimErr: 0, aimErrT: 0 });
+    ai.swapT -= dt; ai.fireT -= dt; ai.aimErrT -= dt;
+    if (ai.swapT <= 0) { ai.strafe *= -1; ai.swapT = rand(0.7, 2.2); }
+    if (ai.aimErrT <= 0) { ai.aimErr = rand(-0.16, 0.16); ai.aimErrT = rand(0.3, 0.8); }
+    let mx = 0, my = 0;
 
-function hostView(){
-  const link = `${location.origin}${location.pathname}?room=${S.code}`;
-  const act = a => api('/api/host', {room:sess.room, hostKey:sess.hostKey, action:a}).catch(e => setStatus('⚠ '+e.message, true));
-  let h = '';
-  if (S.phase === 'lobby'){
-    h = `<div class="grid g3"><div class="card center">
-      <h3>Join at</h3><div style="font-size:18px;font-weight:600;word-break:break-all">${esc(location.origin)}</div>
-      <h3 style="margin-top:18px">Room code</h3><div class="code">${S.code}</div>
-      <div class="row-actions" style="justify-content:center;margin-top:6px">
-        <button class="ghost" id="cpc">📋 Copy code</button>
-        <button class="ghost" id="cp">🔗 Copy join link</button>
-        <button class="ghost" id="tp">🧪 Open test player tab</button>
-      </div>
-      <h3 style="margin-top:24px">In the lobby (${S.playerCount})</h3>
-      <div class="chips" style="justify-content:center">${S.players.map(p=>`<span class="chip">${esc(p.name)}</span>`).join('')||'<span class="muted">Waiting for players…</span>'}</div>
-      <div class="row-actions" style="justify-content:center"><button class="pink" id="go" ${S.playerCount?'':'disabled'}>▶ Start simulation</button></div>
-    </div><div class="card"><h3>Your mission</h3><p>It's launch week. Your team runs a customer-facing digital platform, and crises are coming.</p>
-      <p>Keep all four metrics healthy. Every decision affects them, so <b>the team's average choice drives the outcome</b>.</p>${metricsHTML()}</div></div>`;
-  } else if (S.phase === 'question'){
-    h = `<div class="grid g3"><div class="card">${scenHTML()}
-      <div class="opts">${S.scenario.options.map((o,i)=>`<div class="opt"><span class="k k${i}">${LETTERS[i]}</span><span>${esc(o)}</span></div>`).join('')}</div>${timerHTML()}
-      <div class="row-actions"><button class="ghost" id="rv">Reveal now (${S.answeredCount}/${S.playerCount} answered)</button></div></div>
-      <div class="card"><h3>Decided</h3><div class="chips">${S.players.map(p=>`<span class="chip ${p.answered?'done':''}">${esc(p.name)}</span>`).join('')}</div>
-      <h3 style="margin-top:20px">Team health</h3>${metricsHTML()}</div></div>`;
-  } else if (S.phase === 'reveal'){
-    const last = S.round + 1 >= S.totalRounds;
-    h = `<div class="grid g3"><div class="card">${scenHTML()}<h3 style="margin-top:18px">How the team voted</h3>${revealBars()}
-      <div class="row-actions"><button class="pink" id="nx">${last?'🏁 Final results':'Next crisis ➜'}</button></div></div>
-      <div class="card"><h3>Team health</h3>${metricsHTML(S.reveal.delta)}<h3 style="margin-top:20px">Leaderboard</h3>${boardHTML(8)}</div></div>`;
-  } else h = endHTML();
-  $('#app').innerHTML = h;
-  if ($('#cpc')) $('#cpc').onclick = e => copy(S.code, e.target, '📋 Copy code');
-  if ($('#cp')) $('#cp').onclick = e => copy(link, e.target, '🔗 Copy join link');
-  if ($('#tp')) $('#tp').onclick = () => window.open(link + '&as=player', '_blank', 'noopener');
-  if ($('#go')) $('#go').onclick = e => { e.target.disabled = true; act('start'); };
-  if ($('#rv')) $('#rv').onclick = () => act('reveal');
-  if ($('#nx')) $('#nx').onclick = e => { e.target.disabled = true; act('next'); };
-  if ($('#again')) $('#again').onclick = leave;
-}
+    // 1) Zone survival — aim for where the ring WILL be in ~4s
+    const Z = G.zone, future = Z.phase === 2 ? GameEngine.zoneAt(G.elapsed + 4) : Z;
+    const fx = future.x - b.x, fy = future.y - b.y, fd = Math.hypot(fx, fy) || 1;
+    const margin = Math.min(150, future.r * 0.45);
+    if (fd > future.r - margin) { const w = fd > future.r ? 2.4 : 1.3; mx += fx / fd * w; my += fy / fd * w; }
+    else if (Z.phase === 2) { mx += fx / fd * 0.3; my += fy / fd * 0.3; }
 
-function endHTML(){
-  const avg = Math.round(Object.values(S.metrics).reduce((a,b)=>a+b,0)/4);
-  const verdict = avg>=75?['🏆 Legendary team','Customers barely noticed a thing. Promotions all round.']
-    :avg>=60?['✅ Solid crew','You were bruised but stable, with plenty of lessons for the retro.']
-    :avg>=45?['⚠️ Survived… just','The platform is up, but trust and morale need some care.']
-    :['🔥 Everything is on fire','Time for a long retrospective (and a coffee).'];
-  const t = S.players.slice(0,3), H=[150,110,80], ord=[1,0,2];
-  const hist = (S.history||[]).map((x,i)=>`<tr><td>${i+1}. ${esc(x.title)}</td><td style="text-align:right">${x.consensus}% agreed</td></tr>`).join('');
-  return `<div class="card center"><h3>Week complete</h3><div class="big">${verdict[0]}</div><p style="font-size:18px">${verdict[1]} Team health score: <b>${avg}/100</b></p>
-    <div class="podium">${ord.filter(i=>t[i]).map(i=>`<div class="pod"><div style="font-weight:700;margin-bottom:6px">${esc(t[i].name)}<br><span class="muted">${t[i].score} pts</span></div><div class="blk" style="height:${H[i]}px;background:${['var(--pink)','var(--blue)','var(--purple)'][i]}">${i+1}</div></div>`).join('')}</div></div>
-    <div class="grid g2" style="margin-top:18px"><div class="card"><h3>Final team health</h3>${metricsHTML()}<h3 style="margin-top:16px">Where we agreed (and didn't)</h3><table>${hist}</table>
-    <p class="muted">💬 Discussion prompt: pick the round with the <b>lowest</b> agreement. Why did we split?</p></div>
-    <div class="card"><h3>Full leaderboard</h3>${boardHTML()}${S.role==='host'?'<div class="row-actions"><button id="again">New game</button></div>':''}</div></div>`;
-}
+    // 2) Engage the nearest opponent
+    let tgt = null, td = Infinity;
+    for (const o of G.fighters.values()) { if (o === b || !o.alive) continue; const d = Math.hypot(o.x - b.x, o.y - b.y); if (d < td) { td = d; tgt = o; } }
+    if (tgt && td < 950) {
+      const lead = (td / CONFIG.BOLT_SPEED) * 0.8;
+      const want = Math.atan2(tgt.y + (tgt.vx ? tgt.vy * lead : 0) - b.y, tgt.x + (tgt.vx ? tgt.vx * lead : 0) - b.x) + ai.aimErr;
+      b.angle = turnToward(b.angle, want, dt * 7);
+      const ux = (tgt.x - b.x) / td, uy = (tgt.y - b.y) / td;
+      if (td > 380) { mx += ux * 0.85; my += uy * 0.85; } else if (td < 200) { mx -= ux * 0.8; my -= uy * 0.8; }
+      mx += -uy * ai.strafe * 0.7; my += ux * ai.strafe * 0.7;
+      if (td < CONFIG.BOT_RANGE && ai.fireT <= 0 && Math.abs(angDiff(b.angle, want)) < 0.25) { GameEngine.tryFire(b); ai.fireT = rand(0.3, 0.75); }
+    } else {
+      ai.wander += rand(-1.5, 1.5) * dt; mx += Math.cos(ai.wander) * 0.5; my += Math.sin(ai.wander) * 0.5;
+      b.angle = turnToward(b.angle, ai.wander, dt * 3);
+    }
 
-function playerView(){
-  const y = S.you || {}; let h = '';
-  if (S.phase === 'lobby'){
-    h = `<div class="card center" style="max-width:520px;margin:auto"><div style="font-size:52px">🎧</div><h2>You're in, ${esc(y.name||'')}!</h2>
-      <p class="muted">Waiting for the host to start. While you wait, see who else has joined:</p>
-      <div class="chips" style="justify-content:center">${S.players.map(p=>`<span class="chip">${esc(p.name)}</span>`).join('')}</div></div>`;
-  } else if (S.phase === 'question'){
-    const picked = y.choice !== null && y.choice !== undefined;
-    h = `<div class="card" style="max-width:760px;margin:auto">${scenHTML()}
-      <div class="opts">${S.scenario.options.map((o,i)=>`<button class="opt ${picked&&y.choice===i?'sel':''}" data-i="${i}" ${picked?'disabled':''}><span class="k k${i}">${LETTERS[i]}</span><span>${esc(o)}</span></button>`).join('')}</div>
-      ${timerHTML()}<p class="center muted" style="margin-top:12px">${picked?'🔒 Decision locked in. Waiting for the team… ('+S.answeredCount+'/'+S.playerCount+')':'⚡ Good calls made quickly earn up to +50 bonus points'}</p></div>`;
-  } else if (S.phase === 'reveal'){
-    const L = y.last || {}; const good = L.base >= 80;
-    h = `<div class="grid g3"><div class="card"><div class="center"><div style="font-size:46px">${L.missed?'⏰':good?'🎯':L.base>=40?'🤔':'💥'}</div>
-      <div class="big">+${L.pts||0}</div><p class="muted">${L.missed?'You ran out of time.':`Decision ${L.base} · Speed +${L.speed}${L.streakBonus?' · 🔥 Streak +'+L.streakBonus:''}`}</p></div>
-      ${revealBars()}</div><div class="card"><h3>You</h3><p style="font-size:18px"><b>#${y.rank}</b> of ${S.playerCount} · <b>${y.score}</b> pts</p>
-      <h3>Team health</h3>${metricsHTML(S.reveal.delta)}<p class="muted center">Next crisis incoming…</p></div></div>`;
-  } else h = endHTML();
-  $('#app').innerHTML = h;
-  document.querySelectorAll('.opt[data-i]').forEach(b => b.onclick = async () => {
-    document.querySelectorAll('.opt[data-i]').forEach(x => x.disabled = true); b.classList.add('sel');
-    try { await api('/api/answer', {room:sess.room, pid:sess.pid, choice:+b.dataset.i}); }
-    catch(e) { setStatus('⚠ '+e.message, true); }
+    // 3) Dodge incoming bolts (side-step perpendicular to the bolt's path)
+    for (const bl of G.bolts) {
+      if (bl.o === b.id) continue;
+      const rx = b.x - bl.x, ry = b.y - bl.y, d = Math.hypot(rx, ry); if (d > 270) continue;
+      const sp = Math.hypot(bl.vx, bl.vy) || 1, dx = bl.vx / sp, dy = bl.vy / sp;
+      if (rx * dx + ry * dy < 0) continue;                     // moving away from us
+      const perp = rx * -dy + ry * dx;
+      if (Math.abs(perp) < CONFIG.PLAYER_R * 2.3) { const s = perp >= 0 ? 1 : -1; mx += -dy * s * 1.9; my += dx * s * 1.9; break; }
+    }
+
+    const len = Math.hypot(mx, my);
+    if (len > 0.05) { const sp = CONFIG.SPEED * CONFIG.BOT_SPEED_MUL * Math.min(1, len); b.x += mx / len * sp * dt; b.y += my / len * sp * dt; }
+  },
+};
+
+/* =============================================================================
+   GameEngine — simulation, authority (host), events, physics (dt-based)
+   ============================================================================= */
+const GameEngine = {
+  newFighter(o) {
+    return { id: o.id, name: o.name, color: o.color, isBot: !!o.isBot, x: o.x || 0, y: o.y || 0, rx: o.x || 0, ry: o.y || 0,
+      lx: o.x || 0, ly: o.y || 0, vx: 0, vy: 0, kvx: 0, kvy: 0, angle: o.angle || 0, hp: CONFIG.MAX_HP, alive: true, kills: 0,
+      cd: 0, flash: 0, place: 0, diedAt: 0, zacc: 0, lastShot: 0, ai: null };
+  },
+  isLocalSim(f) { return f.id === G.myId || (G.isHost && f.isBot); },
+  aliveList() { const a = []; for (const f of G.fighters.values()) if (f.alive) a.push(f); return a; },
+
+  zoneAt(e) {
+    const R = CONFIG.ARENA_R;
+    if (e < CONFIG.PHASE1) return { x: 0, y: 0, r: R, phase: 1, p: 0 };
+    const p = clamp((e - CONFIG.PHASE1) / CONFIG.SHRINK, 0, 1);
+    const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;   // smooth in/out
+    return { x: G.zt.x * ease, y: G.zt.y * ease, r: R * (1 - ease), phase: 2, p };
+  },
+
+  /* ---------- emit: host applies an event locally and relays it ---------- */
+  emit(ev) { this.applyEvent(ev); NetworkManager.broadcast(ev); },
+
+  /* ---------- lobby (host) ---------- */
+  broadcastLobby() { if (G.isHost) this.emit({ k: 'lobby', code: G.roomCode, roster: G.roster }); },
+  addBot() {
+    if (!G.isHost) return;
+    if (G.roster.length >= CONFIG.MAX_FIGHTERS) return UIController.toast(`Max ${CONFIG.MAX_FIGHTERS} fighters`, 'warn');
+    const used = new Set(G.roster.map(r => r.name)), usedC = new Set(G.roster.map(r => r.color));
+    const base = CONFIG.BOT_NAMES.find(n => !used.has('Bot_' + n)) || ('X' + (G.botSeq + 1));
+    const color = CONFIG.COLORS.find(c => !usedC.has(c)) || CONFIG.COLORS[G.botSeq % CONFIG.COLORS.length];
+    G.roster.push({ id: 'bot_' + (++G.botSeq), name: 'Bot_' + base, color, isBot: true });
+    this.broadcastLobby();
+  },
+  removeBot(id) {
+    if (!G.isHost) return;
+    const idx = id ? G.roster.findIndex(r => r.id === id) : G.roster.map(r => r.isBot).lastIndexOf(true);
+    if (idx >= 0 && G.roster[idx].isBot) { G.roster.splice(idx, 1); this.broadcastLobby(); }
+  },
+  onPeerJoin(m) {
+    if (!G.isHost) return;
+    if (G.screen === 'playing') return NetworkManager.toPeer(m.id, { k: 'reject', msg: 'A match is in progress — try again when it ends.' });
+    if (G.roster.length >= CONFIG.MAX_FIGHTERS) {
+      const bot = G.roster.map(r => r.isBot).lastIndexOf(true);          // make space by dropping a bot
+      if (bot < 0) return NetworkManager.toPeer(m.id, { k: 'reject', msg: 'That room is full.' });
+      G.roster.splice(bot, 1);
+    }
+    G.roster.push({ id: m.id, name: m.name, color: m.color, isBot: false });
+    UIController.toast(`${m.name} joined`, 'ok');
+    this.broadcastLobby();
+  },
+  onPeerLeave(id) {
+    if (!G.isHost) return;
+    const r = G.roster.find(x => x.id === id); G.roster = G.roster.filter(x => x.id !== id);
+    if (r) UIController.toast(`${r.name} left`, 'warn');
+    const f = G.fighters.get(id);
+    if (G.screen === 'playing' && f && f.alive) this.hostEliminate(f, 'LEFT');
+    this.broadcastLobby();
+  },
+  onPeerMsg(from, d) {
+    const f = G.fighters.get(from);
+    if (G.screen !== 'playing' || !f || !f.alive) return;
+    if (d.k === 'st') {
+      const R = CONFIG.ARENA_R; let x = +d.x || 0, y = +d.y || 0; const dd = Math.hypot(x, y);
+      if (dd > R) { x = x / dd * R; y = y / dd * R; }
+      f.x = x; f.y = y; f.angle = +d.a || 0;
+    } else if (d.k === 'shot') {
+      const now = performance.now(); if (now - f.lastShot < CONFIG.FIRE_CD * 800) return;   // basic rate limit
+      f.lastShot = now;
+      const a = Math.atan2(+d.vy || 0, +d.vx || 1);
+      this.emit({ k: 'shot', o: from, x: +d.x || f.x, y: +d.y || f.y, vx: Math.cos(a) * CONFIG.BOLT_SPEED, vy: Math.sin(a) * CONFIG.BOLT_SPEED });
+    }
+  },
+
+  /* ---------- match lifecycle (host) ---------- */
+  hostStartMatch() {
+    if (!G.isHost) return;
+    const ros = G.roster.slice(0, CONFIG.MAX_FIGHTERS);
+    if (ros.length < 2) return UIController.toast('Add an AI bot or invite a friend first', 'warn');
+    const n = ros.length, off = Math.random() * TAU, d = CONFIG.ARENA_R * 0.62;
+    const fighters = ros.map((r, i) => {
+      const a = off + (i / n) * TAU;
+      return { id: r.id, name: r.name, color: r.color, isBot: r.isBot, x: Math.round(Math.cos(a) * d), y: Math.round(Math.sin(a) * d), angle: a + Math.PI };
+    });
+    const za = Math.random() * TAU, zd = Math.random() * CONFIG.ARENA_R * 0.3;
+    this.emit({ k: 'start', fighters, zt: { x: Math.round(Math.cos(za) * zd), y: Math.round(Math.sin(za) * zd) } });
+  },
+  hostToLobby() { if (!G.isHost) return; this.emit({ k: 'toLobby' }); this.broadcastLobby(); },
+  hostDamage(v, dmg, a, kx, ky) {
+    if (!v.alive || G.ending) return;
+    v.hp = Math.max(0, v.hp - dmg);
+    this.emit({ k: 'hit', v: v.id, a, d: dmg, kx: Math.round(kx), ky: Math.round(ky), hp: v.hp });
+    if (v.hp <= 0) this.hostEliminate(v, a);
+  },
+  hostEliminate(v, a) {
+    if (!v.alive) return;
+    v.alive = false; v.hp = 0; v.diedAt = G.elapsed;
+    v.place = this.aliveList().length + 1;
+    const k = G.fighters.get(a); if (k && k !== v) k.kills++;
+    this.emit({ k: 'elim', v: v.id, a, place: v.place, t: +G.elapsed.toFixed(2) });
+  },
+  hostCheckWin() {
+    if (G.ending) { if (performance.now() >= G.endAt) this.hostFinish(); return; }
+    const alive = this.aliveList();
+    if (alive.length <= 1) {
+      G.ending = true; G.endAt = performance.now() + 1600;
+      if (alive[0]) alive[0].place = 1;
+    }
+  },
+  hostFinish() {
+    const all = [...G.fighters.values()];
+    const res = all.map(f => ({ id: f.id, name: f.name, color: f.color, isBot: f.isBot, place: f.place || 1, kills: f.kills,
+      surv: +(f.alive ? G.elapsed : f.diedAt).toFixed(1) })).sort((a, b) => a.place - b.place);
+    G.ending = false; G.endAt = Infinity;
+    this.emit({ k: 'end', w: res[0] ? res[0].id : null, res });
+  },
+
+  /* ---------- combat (shared) ---------- */
+  tryFire(f) {
+    if (!f.alive || f.cd > 0 || G.screen !== 'playing') return;
+    f.cd = CONFIG.FIRE_CD;
+    const a = f.angle, m = CONFIG.PLAYER_R + 14;
+    const x = f.x + Math.cos(a) * m, y = f.y + Math.sin(a) * m, vx = Math.cos(a) * CONFIG.BOLT_SPEED, vy = Math.sin(a) * CONFIG.BOLT_SPEED;
+    f.kvx -= Math.cos(a) * 35; f.kvy -= Math.sin(a) * 35;                    // recoil
+    if (f.id === G.myId) G.shake = Math.max(G.shake, 2.2);
+    if (G.isHost) this.emit({ k: 'shot', o: f.id, x: Math.round(x), y: Math.round(y), vx: Math.round(vx), vy: Math.round(vy) });
+    else { this.spawnBolt(f, x, y, vx, vy); AudioManager.shoot(1); NetworkManager.toHost({ k: 'shot', x: Math.round(x), y: Math.round(y), vx: Math.round(vx), vy: Math.round(vy) }); }
+  },
+  spawnBolt(f, x, y, vx, vy) {
+    G.bolts.push({ o: f.id, color: f.color, x, y, vx, vy, life: CONFIG.BOLT_LIFE });
+    this.burst(x, y, f.color, 4, 140, Math.atan2(vy, vx), 0.7);
+  },
+  burst(x, y, color, n, speed, dir = null, spread = TAU) {
+    for (let i = 0; i < n && G.particles.length < 700; i++) {
+      const a = dir === null ? Math.random() * TAU : dir + (Math.random() - 0.5) * spread, s = speed * rand(0.25, 1);
+      const life = rand(0.25, 0.7);
+      G.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life, max: life, size: rand(1.5, 4), color });
+    }
+  },
+  nearFactor(x, y) { return clamp(1 - Math.hypot(x - G.cam.x, y - G.cam.y) / (900 / G.zoom), 0, 1); },
+
+  /* ---------- event application (runs on every client, host included) ---------- */
+  applyEvent(ev) {
+    switch (ev.k) {
+      case 'lobby':
+        G.roster = ev.roster || []; G.roomCode = ev.code || G.roomCode;
+        if (G.screen === 'lobby') UIController.renderLobby();
+        break;
+      case 'toLobby':
+        this.resetMatch(); UIController.showLobby();
+        break;
+      case 'start': this.beginMatch(ev); break;
+      case 'snap': {
+        if (G.isHost || G.screen !== 'playing') return;
+        if (Math.abs(ev.e - G.elapsed) > 0.25) G.elapsed = ev.e; else G.elapsed += (ev.e - G.elapsed) * 0.2;
+        for (const [id, x, y, a, hp, al, kills] of ev.f) {
+          const f = G.fighters.get(id); if (!f) continue;
+          if (id !== G.myId) { f.x = x; f.y = y; f.angle = a; }
+          f.hp = hp; f.kills = kills;
+          if (!al && f.alive) { f.alive = false; if (id === G.myId) UIController.enterSpectate(null); }
+        }
+        break;
+      }
+      case 'shot': {
+        if (!G.isHost && ev.o === G.myId) return;      // already spawned locally
+        const f = G.fighters.get(ev.o); if (!f) return;
+        f.angle = Math.atan2(ev.vy, ev.vx);
+        this.spawnBolt(f, ev.x, ev.y, ev.vx, ev.vy);
+        if (ev.o === G.myId) AudioManager.shoot(1); else AudioManager.shoot(this.nearFactor(ev.x, ev.y) * 0.45);
+        break;
+      }
+      case 'hit': {
+        const f = G.fighters.get(ev.v); if (!f) return;
+        if (!G.isHost) f.hp = ev.hp;
+        f.flash = 0.12;
+        const zone = ev.a === 'ZONE';
+        G.texts.push({ x: f.rx + rand(-10, 10), y: f.ry - CONFIG.PLAYER_R - 8, text: '-' + ev.d, color: zone ? '#fb7185' : '#fde047', life: 0.9, max: 0.9 });
+        if (!zone) {
+          const dir = Math.atan2(ev.ky, ev.kx);
+          this.burst(f.rx, f.ry, f.color, 12, 260, dir, 1.1);
+          this.burst(f.rx, f.ry, '#ffffff', 4, 200, dir, 0.8);
+          if (this.isLocalSim(f)) { f.kvx += ev.kx; f.kvy += ev.ky; }            // knockback
+        }
+        if (ev.v === G.myId) { G.shake = Math.max(G.shake, zone ? 4 : 9); zone ? AudioManager.zone() : AudioManager.hit(); }
+        else if (ev.a === G.myId) AudioManager.hitMarker();
+        break;
+      }
+      case 'elim': {
+        const f = G.fighters.get(ev.v); if (!f) return;
+        if (!G.isHost) {
+          f.alive = false; f.hp = 0; f.place = ev.place; f.diedAt = ev.t;
+          const k = G.fighters.get(ev.a); if (k && k !== f) k.kills++;
+        }
+        this.burst(f.rx, f.ry, f.color, 40, 420); this.burst(f.rx, f.ry, '#ffffff', 14, 300);
+        AudioManager.elim(Math.max(0.25, this.nearFactor(f.rx, f.ry)));
+        if (this.nearFactor(f.rx, f.ry) > 0.3) G.shake = Math.max(G.shake, 7);
+        const killer = G.fighters.get(ev.a);
+        const msg = ev.a === 'ZONE' ? [null, f, 'fell to the zone'] : ev.a === 'LEFT' ? [null, f, 'left the match'] : [killer, f, 'eliminated'];
+        UIController.feed(msg[0], msg[1], msg[2]);
+        if (ev.v === G.myId) { UIController.enterSpectate(ev.a); AudioManager.defeat(); UIController.banner('ELIMINATED', `#${ev.place} place — spectating`, '#fb7185'); }
+        else if (ev.a === G.myId) UIController.banner('ELIMINATION', `You took out ${f.name}`, '#fde047', 1);
+        if (G.spectate === ev.v) UIController.cycleSpectate(1);
+        break;
+      }
+      case 'end': UIController.showOver(ev); break;
+    }
+  },
+
+  beginMatch(ev) {
+    this.resetMatch();
+    for (const o of ev.fighters) G.fighters.set(o.id, this.newFighter(o));
+    G.zt = ev.zt || { x: 0, y: 0 };
+    G.startT = performance.now(); G.elapsed = 0; G.zone = this.zoneAt(0);
+    const me = G.fighters.get(G.myId);
+    if (me) { G.cam.x = me.x; G.cam.y = me.y; }
+    G.screen = 'playing';
+    UIController.showHud(!!me);
+    if (!me) UIController.enterSpectate(null);
+    UIController.banner('FIGHT!', `${CONFIG.PHASE1} seconds until the ring closes`, '#67e8f9');
+    AudioManager.fight();
+  },
+  resetMatch() {
+    G.fighters = new Map(); G.bolts = []; G.particles = []; G.texts = [];
+    G.elapsed = 0; G.lastSec = -1; G.phaseShown = 1; G.ending = false; G.endAt = 0; G.spectate = null; G.shake = 0; G.hpLag = 100;
+    G.zone = { x: 0, y: 0, r: CONFIG.ARENA_R, phase: 1 };
+    UIController.clearFeed();
+  },
+
+  /* ---------- per-frame update ---------- */
+  update(dt, realDt = dt) {
+    if (G.screen !== 'playing') { this.updateFx(dt); return; }
+    if (G.isHost) G.elapsed = (performance.now() - G.startT) / 1000; else G.elapsed += dt;
+    G.zone = this.zoneAt(G.elapsed);
+    this.phaseAlerts();
+    this.updateLocalPlayer(dt);
+
+    const R = CONFIG.ARENA_R - CONFIG.PLAYER_R;
+    for (const f of G.fighters.values()) {
+      if (f.cd > 0) f.cd -= dt;
+      if (f.flash > 0) f.flash -= dt;
+      if (!f.alive) continue;
+      if (G.isHost && f.isBot && !G.ending) BotAI.update(f, dt);
+      if (this.isLocalSim(f)) {
+        f.x += f.kvx * dt; f.y += f.kvy * dt;
+        const decay = Math.exp(-9 * dt); f.kvx *= decay; f.kvy *= decay;
+        const d = Math.hypot(f.x, f.y); if (d > R) { f.x = f.x / d * R; f.y = f.y / d * R; }
+        f.rx = f.x; f.ry = f.y;
+      } else {
+        const k = Math.min(1, dt * 14); f.rx += (f.x - f.rx) * k; f.ry += (f.y - f.ry) * k;
+      }
+      const ivx = (f.x - f.lx) / Math.max(dt, 1e-3), ivy = (f.y - f.ly) / Math.max(dt, 1e-3);
+      f.vx = f.vx * 0.85 + ivx * 0.15; f.vy = f.vy * 0.85 + ivy * 0.15; f.lx = f.x; f.ly = f.y;
+    }
+
+    if (G.isHost && !G.ending && G.zone.phase === 2) {                            // zone damage (authoritative)
+      for (const f of G.fighters.values()) {
+        if (!f.alive) continue;
+        if (Math.hypot(f.x - G.zone.x, f.y - G.zone.y) > G.zone.r) {
+          f.zacc += CONFIG.ZONE_DPS * realDt;                                  // real time, so low FPS can't slow the zone
+          while (f.zacc >= CONFIG.ZONE_TICK && f.alive) { f.zacc -= CONFIG.ZONE_TICK; this.hostDamage(f, CONFIG.ZONE_TICK, 'ZONE', 0, 0); }
+        } else f.zacc = Math.max(0, f.zacc - dt * 5);
+      }
+    }
+
+    this.updateBolts(dt);
+    this.updateFx(dt);
+
+    const now = performance.now();
+    if (G.isHost) {
+      this.hostCheckWin();
+      if (G.netRoom && now - G.lastSnap > CONFIG.SNAP_MS) {
+        G.lastSnap = now;
+        const f = []; for (const x of G.fighters.values()) f.push([x.id, Math.round(x.x), Math.round(x.y), +x.angle.toFixed(2), Math.round(x.hp), x.alive ? 1 : 0, x.kills]);
+        NetworkManager.broadcast({ k: 'snap', e: +G.elapsed.toFixed(3), f });
+      }
+    } else if (now - G.lastInput > CONFIG.INPUT_MS) {
+      const me = G.fighters.get(G.myId);
+      if (me && me.alive) { G.lastInput = now; NetworkManager.toHost({ k: 'st', x: Math.round(me.x), y: Math.round(me.y), a: +me.angle.toFixed(2) }); }
+    }
+    this.updateCamera(dt);
+  },
+
+  updateLocalPlayer(dt) {
+    const me = G.fighters.get(G.myId); if (!me || !me.alive) return;
+    const K = Input.keys;
+    let mx = Input.moveX, my = Input.moveY;
+    if (K.KeyW || K.ArrowUp) my -= 1; if (K.KeyS || K.ArrowDown) my += 1;
+    if (K.KeyA || K.ArrowLeft) mx -= 1; if (K.KeyD || K.ArrowRight) mx += 1;
+    const len = Math.hypot(mx, my); if (len > 1) { mx /= len; my /= len; }
+    me.x += mx * CONFIG.SPEED * dt; me.y += my * CONFIG.SPEED * dt;
+    if (Input.touchAim) me.angle = Input.aimAngle;
+    else if (Input.hasMouse) {
+      const wx = G.cam.x + (Input.mx - G.W / 2) / G.zoom, wy = G.cam.y + (Input.my - G.H / 2) / G.zoom;
+      me.angle = Math.atan2(wy - me.y, wx - me.x);
+    }
+    if (Input.mouseDown || K.Space || Input.touchFire) this.tryFire(me);
+  },
+
+  updateBolts(dt) {
+    const hitR = CONFIG.PLAYER_R + CONFIG.BOLT_R, lim = CONFIG.ARENA_R + 60;
+    for (let i = G.bolts.length - 1; i >= 0; i--) {
+      const b = G.bolts[i];
+      b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+      if (b.life <= 0 || Math.hypot(b.x, b.y) > lim) { G.bolts.splice(i, 1); continue; }
+      for (const f of G.fighters.values()) {
+        if (!f.alive || f.id === b.o) continue;
+        const px = G.isHost ? f.x : f.rx, py = G.isHost ? f.y : f.ry;
+        if ((b.x - px) ** 2 + (b.y - py) ** 2 < hitR * hitR) {
+          G.bolts.splice(i, 1);
+          this.burst(b.x, b.y, b.color, 6, 160, Math.atan2(-b.vy, -b.vx), 1.4);
+          if (G.isHost) { const sp = Math.hypot(b.vx, b.vy) || 1; this.hostDamage(f, CONFIG.BOLT_DMG, b.o, b.vx / sp * CONFIG.KNOCKBACK, b.vy / sp * CONFIG.KNOCKBACK); }
+          break;
+        }
+      }
+    }
+  },
+
+  updateFx(dt) {
+    for (let i = G.particles.length - 1; i >= 0; i--) {
+      const p = G.particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; const d = Math.exp(-4 * dt); p.vx *= d; p.vy *= d;
+      p.life -= dt; if (p.life <= 0) G.particles.splice(i, 1);
+    }
+    for (let i = G.texts.length - 1; i >= 0; i--) { const t = G.texts[i]; t.y -= 46 * dt; t.life -= dt; if (t.life <= 0) G.texts.splice(i, 1); }
+    G.shake = Math.max(0, G.shake - 30 * dt);
+  },
+
+  updateCamera(dt) {
+    const me = G.fighters.get(G.myId);
+    let tgt = me && me.alive ? me : G.fighters.get(G.spectate);
+    if (!tgt || !tgt.alive) { const a = this.aliveList(); if (a.length && (!me || !me.alive)) { G.spectate = a[0].id; UIController.updateSpectate(); tgt = a[0]; } }
+    if (tgt) { const k = Math.min(1, dt * 7); G.cam.x += (tgt.rx - G.cam.x) * k; G.cam.y += (tgt.ry - G.cam.y) * k; }
+    // Gracefully frame the arena: don't let the camera drift far past the wall
+    const lim = Math.max(0, CONFIG.ARENA_R - Math.min(G.W, G.H) / G.zoom * 0.3), d = Math.hypot(G.cam.x, G.cam.y);
+    if (d > lim) { G.cam.x = G.cam.x / d * lim; G.cam.y = G.cam.y / d * lim; }
+  },
+
+  phaseAlerts() {
+    if (G.elapsed < CONFIG.PHASE1) {
+      const s = Math.ceil(CONFIG.PHASE1 - G.elapsed);
+      if (s !== G.lastSec) { G.lastSec = s; if (s <= 5) AudioManager.tick(s === 1); else if (s === 10) UIController.banner('10 SECONDS', 'The ring is about to close', '#fbbf24', 1); }
+    } else if (G.phaseShown === 1) {
+      G.phaseShown = 2; AudioManager.alarm();
+      UIController.banner('RING CLOSING!', 'Get inside the safe zone', '#fb7185');
+    }
+  },
+};
+
+/* =============================================================================
+   Renderer — canvas drawing (neon arena, fighters, FX, minimap)
+   ============================================================================= */
+const canvas = $('game'), ctx = canvas.getContext('2d');
+const mini = $('minimap'), mctx = mini.getContext('2d');
+const Renderer = {
+  resize() {
+    G.dpr = Math.min(window.devicePixelRatio || 1, 2); G.W = window.innerWidth; G.H = window.innerHeight;
+    canvas.width = Math.floor(G.W * G.dpr); canvas.height = Math.floor(G.H * G.dpr);
+    G.zoom = clamp(Math.min(G.W, G.H) / 820, 0.55, 1);
+  },
+  render(t) {
+    const W = G.W, H = G.H, z = G.zoom, R = CONFIG.ARENA_R;
+    ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0);
+    ctx.fillStyle = '#0a0e17'; ctx.fillRect(0, 0, W, H);
+    const inGame = G.screen === 'playing' || G.screen === 'over';
+    const cx = inGame ? G.cam.x : Math.cos(t * 0.12) * 380, cy = inGame ? G.cam.y : Math.sin(t * 0.12) * 380;
+    const sx = (Math.random() - 0.5) * G.shake, sy = (Math.random() - 0.5) * G.shake;
+    ctx.save(); ctx.translate(W / 2 + sx, H / 2 + sy); ctx.scale(z, z); ctx.translate(-cx, -cy);
+    const vw = W / 2 / z + 60, vh = H / 2 / z + 60, x0 = cx - vw, x1 = cx + vw, y0 = cy - vh, y1 = cy + vh;
+
+    // Neon grid
+    const gs = 64; ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(34,211,238,0.07)'; ctx.beginPath();
+    for (let x = Math.floor(x0 / gs) * gs; x <= x1; x += gs) { ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
+    for (let y = Math.floor(y0 / gs) * gs; y <= y1; y += gs) { ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(34,211,238,0.12)'; ctx.beginPath();
+    for (let x = Math.floor(x0 / 256) * 256; x <= x1; x += 256) { ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
+    for (let y = Math.floor(y0 / 256) * 256; y <= y1; y += 256) { ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
+    ctx.stroke();
+
+    // Outside the arena: dark void
+    ctx.fillStyle = 'rgba(2,4,10,0.72)'; ctx.beginPath(); ctx.rect(x0, y0, x1 - x0, y1 - y0); ctx.arc(0, 0, R, 0, TAU, true); ctx.fill();
+
+    // Danger zone (translucent crimson between arena wall and safe ring)
+    const Z = inGame ? G.zone : { x: 0, y: 0, r: R * (0.78 + 0.06 * Math.sin(t * 0.6)) };
+    if (Z.r < R - 0.5) {
+      ctx.fillStyle = `rgba(225,29,72,${0.17 + 0.05 * Math.sin(t * 6)})`;
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU, false); ctx.arc(Z.x, Z.y, Math.max(0, Z.r), 0, TAU, true); ctx.fill();
+    }
+    // Arena wall
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(56,189,248,0.3)'; ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.stroke();
+    // Glowing cyan safe ring
+    if (Z.r > 0.5) {
+      ctx.save(); ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 22; ctx.lineWidth = 4 + (inGame && G.zone.phase === 2 ? Math.sin(t * 8) * 1.2 : 0);
+      ctx.strokeStyle = '#22d3ee'; ctx.beginPath(); ctx.arc(Z.x, Z.y, Z.r, 0, TAU); ctx.stroke(); ctx.restore();
+    }
+
+    // Particles + bolts (additive glow)
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of G.particles) {
+      if (p.x < x0 || p.x > x1 || p.y < y0 || p.y > y1) continue;
+      ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1; ctx.lineCap = 'round';
+    for (const b of G.bolts) {
+      const tx = b.x - b.vx * 0.03, ty = b.y - b.vy * 0.03;
+      ctx.strokeStyle = hexA(b.color, 0.35); ctx.lineWidth = 11; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.strokeStyle = b.color; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(b.x, b.y, 2.6, 0, TAU); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    // Fighters
+    for (const f of G.fighters.values()) if (f.alive && f.id !== G.myId) this.drawFighter(f, t);
+    const me = G.fighters.get(G.myId); if (me && me.alive) this.drawFighter(me, t);
+
+    // Floating damage numbers
+    ctx.textAlign = 'center'; ctx.font = '800 16px "Segoe UI", system-ui, sans-serif';
+    for (const tx of G.texts) { ctx.globalAlpha = Math.max(0, tx.life / tx.max); ctx.fillStyle = tx.color; ctx.fillText(tx.text, tx.x, tx.y); }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    // Mouse reticle (screen space)
+    if (G.screen === 'playing' && me && me.alive && Input.hasMouse && !Input.touchAim) {
+      const rx = Input.mx, ry = Input.my, cdp = clamp(me.cd / CONFIG.FIRE_CD, 0, 1);
+      ctx.strokeStyle = 'rgba(165,243,252,0.9)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(rx, ry, 10, 0, TAU); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(rx - 16, ry); ctx.lineTo(rx - 6, ry); ctx.moveTo(rx + 6, ry); ctx.lineTo(rx + 16, ry);
+      ctx.moveTo(rx, ry - 16); ctx.lineTo(rx, ry - 6); ctx.moveTo(rx, ry + 6); ctx.lineTo(rx, ry + 16); ctx.stroke();
+      if (cdp > 0) { ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(rx, ry, 14, -Math.PI / 2, -Math.PI / 2 + TAU * cdp); ctx.stroke(); }
+    }
+    if (G.screen === 'playing') this.renderMinimap(t);
+  },
+
+  drawFighter(f, t) {
+    const x = f.rx, y = f.ry, r = CONFIG.PLAYER_R, isMe = f.id === G.myId, white = f.flash > 0;
+    const g = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * 2.6);
+    g.addColorStop(0, hexA(f.color, isMe ? 0.45 : 0.3)); g.addColorStop(1, hexA(f.color, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 2.6, 0, TAU); ctx.fill();
+    if (isMe && G.screen === 'playing') {                       // subtle aim guide
+      ctx.fillStyle = hexA(f.color, 0.45);
+      for (let i = 1; i <= 4; i++) { const d = r + 20 + i * 16; ctx.beginPath(); ctx.arc(x + Math.cos(f.angle) * d, y + Math.sin(f.angle) * d, 2.2 - i * 0.3, 0, TAU); ctx.fill(); }
+    }
+    ctx.save(); ctx.translate(x, y); ctx.rotate(f.angle);                // barrel
+    ctx.fillStyle = white ? '#fff' : '#0f172a'; ctx.strokeStyle = white ? '#fff' : f.color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.rect(r - 6, -5, 20, 10); ctx.fill(); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU);                         // body
+    ctx.fillStyle = white ? '#ffffff' : '#0f172a'; ctx.fill();
+    ctx.lineWidth = isMe ? 4 : 3; ctx.strokeStyle = white ? '#ffffff' : f.color; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, r * 0.42, 0, TAU); ctx.fillStyle = white ? '#ffffff' : f.color; ctx.fill();
+    // Nameplate + mini health bar
+    const bw = 46, by = y - r - 12;
+    ctx.font = (isMe ? '700 ' : '600 ') + '12px "Segoe UI", system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillText(f.name, x + 1, by - 5);
+    ctx.fillStyle = isMe ? '#ffffff' : f.color; ctx.fillText(f.name, x, by - 6);
+    ctx.fillStyle = 'rgba(15,23,42,0.9)'; ctx.fillRect(x - bw / 2, by, bw, 5);
+    const hr = clamp(f.hp / CONFIG.MAX_HP, 0, 1);
+    ctx.fillStyle = hr > 0.5 ? '#34d399' : hr > 0.25 ? '#fbbf24' : '#f43f5e'; ctx.fillRect(x - bw / 2, by, bw * hr, 5);
+  },
+
+  renderMinimap(t) {
+    const S = mini.width, c = S / 2, k = (S / 2 - 5) / CONFIG.ARENA_R, Z = G.zone;
+    mctx.clearRect(0, 0, S, S);
+    mctx.fillStyle = 'rgba(225,29,72,0.28)'; mctx.beginPath(); mctx.arc(c, c, CONFIG.ARENA_R * k, 0, TAU); mctx.fill();
+    mctx.fillStyle = '#0b1224'; mctx.beginPath(); mctx.arc(c + Z.x * k, c + Z.y * k, Math.max(0, Z.r * k), 0, TAU); mctx.fill();
+    mctx.strokeStyle = 'rgba(56,189,248,0.4)'; mctx.lineWidth = 1.5; mctx.beginPath(); mctx.arc(c, c, CONFIG.ARENA_R * k, 0, TAU); mctx.stroke();
+    mctx.strokeStyle = '#22d3ee'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(c + Z.x * k, c + Z.y * k, Math.max(0.5, Z.r * k), 0, TAU); mctx.stroke();
+    if (Z.phase === 1) { mctx.setLineDash([3, 3]); mctx.strokeStyle = 'rgba(255,255,255,0.35)'; mctx.beginPath(); mctx.arc(c + G.zt.x * k, c + G.zt.y * k, 4, 0, TAU); mctx.stroke(); mctx.setLineDash([]); }
+    for (const f of G.fighters.values()) {
+      if (!f.alive) continue;
+      const isMe = f.id === G.myId, spec = f.id === G.spectate;
+      mctx.fillStyle = isMe ? '#ffffff' : f.color;
+      mctx.beginPath(); mctx.arc(c + f.rx * k, c + f.ry * k, isMe || spec ? 4 : 2.8, 0, TAU); mctx.fill();
+      if (isMe || spec) { mctx.strokeStyle = spec ? '#fff' : f.color; mctx.lineWidth = 1.5; mctx.beginPath(); mctx.arc(c + f.rx * k, c + f.ry * k, 6.5 + Math.sin(t * 6), 0, TAU); mctx.stroke(); }
+    }
+  },
+};
+
+/* =============================================================================
+   Input — keyboard, mouse, touch sticks
+   ============================================================================= */
+const Input = { keys: {}, mx: 0, my: 0, hasMouse: false, mouseDown: false, moveX: 0, moveY: 0, aimAngle: 0, touchAim: false, touchFire: false,
+  isTouch: window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window };
+
+/* =============================================================================
+   UIController — screens, lobby, HUD, feed, banners, victory
+   ============================================================================= */
+const UIController = {
+  els: {},
+  init() {
+    // Nickname + colour
+    const nm = $('inName'); nm.value = localStorage.getItem('rr_name') || '';
+    G.myColor = localStorage.getItem('rr_color') || CONFIG.COLORS[Math.floor(Math.random() * CONFIG.COLORS.length)];
+    const sw = $('swatches');
+    CONFIG.COLORS.forEach(c => {
+      const b = document.createElement('button'); b.className = 'swatch' + (c === G.myColor ? ' sel' : ''); b.style.background = c; b.style.boxShadow = `0 0 12px ${c}`;
+      b.title = c; b.type = 'button';
+      b.onclick = () => { G.myColor = c; localStorage.setItem('rr_color', c); sw.querySelectorAll('.swatch').forEach(x => x.classList.toggle('sel', x === b)); };
+      sw.appendChild(b);
+    });
+    const join = QS.get('join'); if (join) $('inCode').value = join.toUpperCase().slice(0, 4);
+
+    $('btnSolo').onclick = () => this.quickSolo();
+    $('btnCreate').onclick = () => this.createRoom();
+    $('btnJoin').onclick = () => this.joinRoom();
+    $('inCode').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); this.joinRoom(); } });
+    $('inCode').addEventListener('paste', e => { const t = (e.clipboardData || window.clipboardData).getData('text'); const c = this.extractCode(t); if (c) { e.preventDefault(); $('inCode').value = c; } });
+    $('btnAddBot').onclick = () => GameEngine.addBot();
+    $('btnRemBot').onclick = () => GameEngine.removeBot();
+    $('btnStart').onclick = () => GameEngine.hostStartMatch();
+    $('btnLeaveLobby').onclick = () => this.leaveRoom();
+    $('btnCopy').onclick = () => this.copyInvite();
+    $('btnMute').onclick = () => this.toggleMute();
+    $('btnExit').onclick = () => this.exitMatch();
+    $('btnSpecPrev').onclick = () => this.cycleSpectate(-1);
+    $('btnSpecNext').onclick = () => this.cycleSpectate(1);
+    $('btnSpecLeave').onclick = () => this.exitMatch();
+    $('btnAgain').onclick = () => GameEngine.hostStartMatch();
+    $('btnOverLobby').onclick = () => GameEngine.hostToLobby();
+    $('btnOverLeave').onclick = () => this.leaveRoom();
+    $('roster').addEventListener('click', e => { const b = e.target.closest('[data-kick]'); if (b) GameEngine.removeBot(b.dataset.kick); });
+    $('btnMute').textContent = AudioManager.muted ? '🔇' : '🔊';
+  },
+  extractCode(t) {
+    t = String(t || '').trim();
+    let m = t.match(/[?&]join=([A-Za-z0-9]{4})/); if (m) return m[1].toUpperCase();
+    const clean = t.replace(/[^A-Za-z0-9]/g, ''); if (clean.length === 4) return clean.toUpperCase();
+    m = t.match(/\b([A-Z0-9]{4})\b/); return m ? m[1] : '';
+  },
+  name() {
+    let n = $('inName').value.trim().slice(0, 16);
+    if (!n) { n = 'Pilot-' + Math.floor(100 + Math.random() * 900); $('inName').value = n; }
+    localStorage.setItem('rr_name', n); G.myName = n; return n;
+  },
+
+  /* ---------- connection status ---------- */
+  setConn(online) {
+    $('connDot').style.background = online ? '#34d399' : '#22d3ee';
+    $('connDot').style.boxShadow = online ? '0 0 8px #34d399' : 'none';
+    $('connText').textContent = online ? 'Multiplayer server connected' : 'Offline — solo & local bot rooms only';
+    $('connBadge').textContent = online ? 'ONLINE' : 'LOCAL';
+    $('btnJoin').disabled = !online; $('inCode').disabled = !online;
+    $('inCode').placeholder = online ? 'CODE' : 'OFFLINE';
+  },
+  onDisconnected() {
+    this.setConn(false);
+    if (G.netRoom) { G.netRoom = false; this.toast('Lost connection to the server', 'err'); this.leaveRoom(true); }
+  },
+
+  /* ---------- room flows ---------- */
+  quickSolo() {
+    AudioManager.unlock(); this.name();
+    if (G.netRoom) { NetworkManager.send({ t: 'leave' }); G.netRoom = false; }
+    G.myId = 'me'; G.isHost = true; G.roomCode = 'SOLO'; G.botSeq = 0;
+    G.roster = [{ id: 'me', name: G.myName, color: G.myColor, isBot: false, isHost: true }];
+    for (let i = 0; i < CONFIG.SOLO_BOTS; i++) GameEngine.addBot();
+    GameEngine.hostStartMatch();
+  },
+  createRoom() {
+    AudioManager.unlock(); this.name(); G.botSeq = 0;
+    if (NetworkManager.online) { NetworkManager.send({ t: 'create' }); return; }
+    G.myId = 'me'; G.isHost = true; G.netRoom = false;
+    const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; G.roomCode = Array.from({ length: 4 }, () => A[Math.floor(Math.random() * A.length)]).join('');
+    G.roster = [{ id: 'me', name: G.myName, color: G.myColor, isBot: false, isHost: true }];
+    this.showLobby(); GameEngine.broadcastLobby();
+    this.toast('Offline room — add AI bots to play', 'warn');
+  },
+  joinRoom() {
+    AudioManager.unlock(); this.name();
+    const code = this.extractCode($('inCode').value);
+    if (code.length !== 4) return this.toast('Room codes are 4 characters', 'err');
+    if (!NetworkManager.online) return this.toast('Multiplayer server not available', 'err');
+    NetworkManager.send({ t: 'join', code, name: G.myName, color: G.myColor });
+  },
+  leaveRoom(silent) {
+    if (G.netRoom) { NetworkManager.send({ t: 'leave' }); G.netRoom = false; }
+    GameEngine.resetMatch();
+    G.isHost = false; G.roster = []; G.roomCode = null; G.myId = 'me';
+    this.showMenu();
+  },
+  exitMatch() {
+    if (G.isHost) { if (G.netRoom) GameEngine.hostToLobby(); else { GameEngine.emit({ k: 'toLobby' }); GameEngine.broadcastLobby(); } }
+    else this.leaveRoom();
+  },
+  copyInvite() {
+    const link = `${location.origin}${location.pathname}?join=${G.roomCode}`;
+    const txt = G.netRoom ? link : G.roomCode;
+    const done = () => this.toast(G.netRoom ? 'Invite link copied' : 'Code copied', 'ok');
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(done, () => prompt('Copy this:', txt));
+    else prompt('Copy this:', txt);
+  },
+
+  /* ---------- screens ---------- */
+  setScreen(name) {
+    for (const id of ['menu', 'lobby', 'over']) $(id).classList.toggle('hidden', id !== name);
+    $('hud').classList.toggle('hidden', name !== 'hud');
+    $('touch').classList.add('hidden');
+    $('vignette').style.opacity = 0;
+  },
+  showMenu() { G.screen = 'menu'; this.setScreen('menu'); },
+  showLobby() { G.screen = 'lobby'; this.setScreen('lobby'); this.renderLobby(); },
+  showHud(alive) {
+    this.setScreen('hud');
+    $('hpPanel').classList.toggle('hidden', !alive); $('specPanel').classList.add('hidden');
+    $('touch').classList.toggle('hidden', !(Input.isTouch && alive));
+    $('hpName').textContent = G.myName || 'You';
+    $('btnSpecLeave').textContent = G.isHost ? 'Leave to Lobby' : 'Leave Room';
+  },
+  renderLobby() {
+    $('lobbyCode').textContent = G.roomCode || '----';
+    $('lobbyMode').textContent = G.netRoom ? 'Online room — share the code or link' : 'Offline room — bots only';
+    $('btnCopy').textContent = G.netRoom ? 'Copy link' : 'Copy code';
+    $('lobbyCount').textContent = `${G.roster.length}/${CONFIG.MAX_FIGHTERS}`;
+    $('roster').innerHTML = G.roster.length ? G.roster.map(r => {
+      const me = r.id === G.myId, host = r.isHost;
+      const tag = r.isBot ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold">AI BOT</span>'
+        : host ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">HOST</span>'
+        : '<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">READY</span>';
+      const kick = G.isHost && r.isBot ? `<button data-kick="${esc(r.id)}" class="btn ml-1 w-6 h-6 rounded-md bg-slate-800 text-slate-400 hover:text-rose-300 text-xs" title="Remove bot">✕</button>` : '';
+      return `<div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-700/60" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="flex items-center gap-2.5 min-w-0"><span class="w-3.5 h-3.5 rounded-full inline-block" style="background:${esc(r.color)};box-shadow:0 0 10px ${esc(r.color)}"></span>
+        <span class="font-semibold text-sm text-white truncate">${esc(r.name)}</span>${me ? '<span class="text-[10px] px-1.5 rounded bg-cyan-500/20 text-cyan-300 font-bold">YOU</span>' : ''}</div>
+        <div class="flex items-center">${tag}${kick}</div></div>`;
+    }).join('') : '<div class="text-center text-slate-500 text-sm py-6">Connecting to host…</div>';
+    $('hostBots').classList.toggle('hidden', !G.isHost);
+    const st = $('btnStart');
+    if (G.isHost) { st.disabled = G.roster.length < 2; st.textContent = G.roster.length < 2 ? 'Need 2+ fighters' : 'Start Match'; $('lobbyHint').textContent = 'Add AI bots or wait for friends, then start.'; }
+    else { st.disabled = true; st.textContent = 'Waiting for host…'; $('lobbyHint').textContent = 'The host will start the match.'; }
+  },
+
+  /* ---------- HUD ---------- */
+  setText(el, v) { if (el._v !== v) { el._v = v; el.textContent = v; } },
+  updateHud(dt) {
+    if (G.screen !== 'playing') return;
+    const all = G.fighters.size, alive = GameEngine.aliveList().length, me = G.fighters.get(G.myId);
+    this.setText($('hudAlive'), `${alive}/${all}`);
+    this.setText($('hudKills'), String(me ? me.kills : 0));
+    const Z = G.zone, box = $('phaseBox'), lab = $('phaseLabel'), tim = $('phaseTimer'), sub = $('phaseSub');
+    let mode;
+    if (Z.phase === 1) {
+      const left = CONFIG.PHASE1 - G.elapsed; mode = left <= 5 ? 'warn' : 'calm';
+      this.setText(lab, 'Battle Phase'); this.setText(tim, fmt(left)); this.setText(sub, 'Ring closes in');
+    } else if (Z.r > 1) {
+      mode = 'danger'; this.setText(lab, 'Ring Closing'); this.setText(tim, fmt(CONFIG.PHASE1 + CONFIG.SHRINK - G.elapsed)); this.setText(sub, 'until full collapse');
+    } else { mode = 'danger'; this.setText(lab, 'Ring Collapsed'); this.setText(tim, '00:00'); this.setText(sub, 'no safe ground left'); }
+    if (box._m !== mode) {
+      box._m = mode;
+      const c = mode === 'calm' ? ['#67e8f9', 'rgba(34,211,238,.45)'] : mode === 'warn' ? ['#fcd34d', 'rgba(251,191,36,.6)'] : ['#fda4af', 'rgba(244,63,94,.7)'];
+      lab.style.color = c[0]; box.style.borderColor = c[1]; box.style.boxShadow = `0 0 24px ${c[1]}`; tim.style.color = mode === 'calm' ? '#fff' : c[0];
+    }
+    // HP bar with smooth drain
+    if (me && me.alive) {
+      const hp = clamp(me.hp, 0, 100);
+      if (G.hpLag < hp) G.hpLag = hp; else G.hpLag += (hp - G.hpLag) * Math.min(1, dt * 2.5);
+      $('hpFill').style.width = hp + '%'; $('hpLag').style.width = G.hpLag + '%';
+      $('hpFill').style.background = hp > 50 ? 'linear-gradient(90deg,#10b981,#22d3ee)' : hp > 25 ? 'linear-gradient(90deg,#f59e0b,#facc15)' : 'linear-gradient(90deg,#e11d48,#fb7185)';
+      this.setText($('hpText'), Math.ceil(hp) + ' HP');
+      const out = Z.phase === 2 && Math.hypot(me.x - Z.x, me.y - Z.y) > Z.r;
+      $('vignette').style.opacity = out ? 1 : 0;
+    } else $('vignette').style.opacity = 0;
+  },
+
+  /* ---------- spectator ---------- */
+  enterSpectate(prefer) {
+    $('hpPanel').classList.add('hidden'); $('touch').classList.add('hidden'); $('specPanel').classList.remove('hidden');
+    $('vignette').style.opacity = 0;
+    const p = G.fighters.get(prefer);
+    G.spectate = p && p.alive ? p.id : (GameEngine.aliveList()[0] || {}).id || null;
+    this.updateSpectate();
+  },
+  cycleSpectate(dir) {
+    const a = GameEngine.aliveList(); if (!a.length) { G.spectate = null; this.updateSpectate(); return; }
+    const i = a.findIndex(f => f.id === G.spectate);
+    G.spectate = a[(i + dir + a.length) % a.length].id; this.updateSpectate();
+  },
+  updateSpectate() { const f = G.fighters.get(G.spectate); $('specName').textContent = f ? f.name : '—'; },
+
+  /* ---------- feed / toasts / banner ---------- */
+  feed(killer, victim, verb) {
+    const d = document.createElement('div');
+    d.className = 'feed-item glass rounded-xl px-3 py-1.5 text-xs font-semibold';
+    d.innerHTML = (killer ? `<span style="color:${esc(killer.color)}">${esc(killer.name)}</span> <span class="text-slate-400">${verb}</span> ` : '') +
+      `<span style="color:${esc(victim.color)}">${esc(victim.name)}</span>` + (killer ? '' : ` <span class="text-slate-400">${verb}</span>`);
+    const f = $('killFeed'); f.appendChild(d);
+    while (f.children.length > 5) f.firstChild.remove();
+    setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 450); }, 4500);
+  },
+  clearFeed() { $('killFeed').innerHTML = ''; },
+  toast(msg, type = 'info') {
+    const c = { ok: '#34d399', err: '#fb7185', warn: '#fbbf24', info: '#67e8f9' }[type] || '#67e8f9';
+    const d = document.createElement('div');
+    d.className = 'glass rounded-xl px-4 py-2 text-sm font-semibold shadow-xl'; d.style.borderColor = c; d.style.color = c; d.style.transition = 'opacity .3s';
+    d.textContent = msg; $('toasts').appendChild(d);
+    setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 320); }, 2600);
+  },
+  banner(title, sub, color, small) {
+    const b = $('banner'), t = $('bannerTitle');
+    t.textContent = title; t.style.color = color || '#67e8f9'; t.style.textShadow = `0 0 24px ${color || '#22d3ee'}`;
+    t.style.fontSize = small ? '2.4rem' : ''; $('bannerSub').textContent = sub || '';
+    b.classList.remove('hidden', 'banner-show'); void b.offsetWidth; b.classList.add('banner-show');
+    clearTimeout(this._bt); this._bt = setTimeout(() => b.classList.add('hidden'), 2200);
+  },
+  toggleMute() { AudioManager.unlock(); AudioManager.setMuted(!AudioManager.muted); $('btnMute').textContent = AudioManager.muted ? '🔇' : '🔊'; },
+
+  /* ---------- victory / summary ---------- */
+  showOver(ev) {
+    G.screen = 'over'; this.setScreen('over');
+    const res = ev.res || [], w = res[0], iWon = w && w.id === G.myId;
+    $('overTag').textContent = iWon ? 'Victory Royale' : 'Match Over';
+    $('overWinner').textContent = w ? w.name : 'No survivors';
+    $('overWinner').style.color = w ? w.color : '#fff';
+    const mine = res.find(r => r.id === G.myId);
+    $('overSub').textContent = iWon ? 'You are the last one standing!' : mine ? `You placed #${mine.place} with ${mine.kills} elimination${mine.kills === 1 ? '' : 's'}.` : `${w ? w.name : 'Nobody'} wins the ring.`;
+    $('overTable').innerHTML = res.map(r => `
+      <div class="px-2 py-1.5 rounded-lg ${r.place === 1 ? 'bg-amber-500/15' : ''} ${r.id === G.myId ? 'ring-1 ring-cyan-400/50' : ''}" style="display:grid;grid-template-columns:40px 1fr 60px 70px;align-items:center">
+        <span class="font-black ${r.place === 1 ? 'text-amber-300' : 'text-slate-400'}">#${r.place}</span>
+        <span class="truncate font-semibold"><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:${esc(r.color)}"></span>${esc(r.name)}${r.id === G.myId ? ' <span class="text-cyan-300 text-[10px]">YOU</span>' : ''}</span>
+        <span class="text-right font-bold text-cyan-300">${r.kills}</span>
+        <span class="text-right tabular-nums text-slate-300">${fmt(r.surv)}</span>
+      </div>`).join('');
+    $('btnAgain').disabled = !G.isHost; $('btnAgain').textContent = G.isHost ? 'Play Again' : 'Waiting for host…';
+    $('btnOverLobby').classList.toggle('hidden', !G.isHost);
+    if (iWon) AudioManager.victory(); else AudioManager.fight();
+  },
+};
+
+/* =============================================================================
+   Input listeners
+   ============================================================================= */
+function setupInput() {
+  window.addEventListener('resize', () => Renderer.resize());
+  window.addEventListener('keydown', e => {
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;             // never block typing in fields
+    Input.keys[e.code] = true;
+    if (G.screen === 'playing') {
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+      const me = G.fighters.get(G.myId);
+      if ((!me || !me.alive) && (e.code === 'KeyQ' || e.code === 'KeyE')) UIController.cycleSpectate(e.code === 'KeyE' ? 1 : -1);
+    }
+    if (e.code === 'KeyM') UIController.toggleMute();
   });
+  window.addEventListener('keyup', e => { Input.keys[e.code] = false; });
+  window.addEventListener('blur', () => { Input.keys = {}; Input.mouseDown = false; });
+  canvas.addEventListener('mousemove', e => { Input.mx = e.clientX; Input.my = e.clientY; Input.hasMouse = true; Input.touchAim = false; });
+  canvas.addEventListener('mousedown', e => { if (e.button === 0) { AudioManager.unlock(); Input.mouseDown = true; Input.mx = e.clientX; Input.my = e.clientY; Input.hasMouse = true; } });
+  window.addEventListener('mouseup', () => { Input.mouseDown = false; });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('pointerdown', () => AudioManager.unlock(), { passive: true });
+
+  function stick(el, onMove, onEnd) {
+    const knob = el.querySelector('.knob'); let id = null;
+    const move = t => {
+      const b = el.getBoundingClientRect(), max = b.width / 2 - 22;
+      let dx = t.clientX - (b.left + b.width / 2), dy = t.clientY - (b.top + b.height / 2); const d = Math.hypot(dx, dy);
+      if (d > max) { dx = dx / d * max; dy = dy / d * max; }
+      knob.style.transform = `translate(${dx}px,${dy}px)`; onMove(dx / max, dy / max);
+    };
+    el.addEventListener('touchstart', e => { e.preventDefault(); AudioManager.unlock(); const t = e.changedTouches[0]; id = t.identifier; move(t); }, { passive: false });
+    el.addEventListener('touchmove', e => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === id) move(t); }, { passive: false });
+    const end = e => { for (const t of e.changedTouches) if (t.identifier === id) { id = null; knob.style.transform = ''; onEnd(); } };
+    el.addEventListener('touchend', end); el.addEventListener('touchcancel', end);
+  }
+  stick($('stickMove'), (x, y) => { Input.moveX = x; Input.moveY = y; }, () => { Input.moveX = 0; Input.moveY = 0; });
+  stick($('stickAim'), (x, y) => {
+    Input.touchFire = true;
+    if (Math.hypot(x, y) > 0.2) { Input.aimAngle = Math.atan2(y, x); Input.touchAim = true; Input.hasMouse = false; }
+  }, () => { Input.touchFire = false; });
 }
 
-// ---------- Boot ----------
-if (location.protocol === 'file:') {
-  $('#app').innerHTML = '<div class="card"><h2>Start the server first</h2><p>You opened the file directly. Run <code>node server.js</code> in this folder, then open <b>http://localhost:3000</b> (or the forwarded Codespaces URL).</p></div>';
-} else {
-  const qp = new URLSearchParams(location.search);
-  const linkRoom = extractCode(qp.get('room') || '');
-  // A join link (or a duplicated host tab) shows the join form instead of resuming another session
-  if (linkRoom && !(sess.role === 'player' && sess.room === linkRoom && qp.get('as') !== 'player')) clearSess();
-  if (sess.room && (sess.hostKey || sess.pid)) connect(); else landing();
+/* =============================================================================
+   Main loop + boot
+   ============================================================================= */
+let lastT = performance.now();
+function frame(now) {
+  const realDt = Math.min(0.25, Math.max(0, (now - lastT) / 1000)); lastT = now;
+  const dt = Math.min(0.05, realDt);                                  // physics step clamp
+  try {
+    GameEngine.update(dt, realDt);
+    UIController.updateHud(dt);
+    Renderer.render(now / 1000);
+  } catch (err) { console.error(err); }
+  requestAnimationFrame(frame);
 }
+(async function boot() {
+  if (!window.tailwind) document.documentElement.classList.add('no-tw');
+  Renderer.resize(); setupInput(); UIController.init();
+  requestAnimationFrame(frame);
+  const online = await NetworkManager.connect();
+  UIController.setConn(online);
+})();
 </script>
 </body>
 </html>

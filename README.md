@@ -1,19 +1,28 @@
-# 🚨 Incident Commander – Live Team Simulation (v2)
+# ⭕ Ring Royale — 2D Neon Battle Royale
 
-A multiplayer crisis simulation for virtual team meetings. The host screen-shares the game while players join from their own devices and decide how to handle 8 launch-week crises. Their combined choices move four shared team metrics, and each player scores points for good calls, speed and streaks.
+Top-down multiplayer battle royale in one HTML file, plus a tiny relay server with no dependencies.
 
-## Run
-    node server.js                    # Node 18+, no npm install needed
-    ROUND_SECONDS=15 node server.js   # shorter rounds for testing
+## Run (Codespaces or local)
+    node server.js            # Node 18+, no npm install
+Open the forwarded port 3000 (or http://localhost:3000).
+- `/?fast` — 8s battle phase + 14s ring collapse (for testing)
+- `/health` — server check
 
-Open http://localhost:3000, or the forwarded URL in Codespaces, and click **Create room**.
+## Play with friends
+1. Ports tab → port 3000 → **Port Visibility → Organization** (or Public).
+2. Create Room → **Copy link** → share it. Friends paste the link or 4-letter code.
+3. Host adds AI bots if needed → **Start Match**.
 
-## Codespaces tips
-- Open the forwarded URL in a **normal browser tab**, not the VS Code Simple Browser.
-- Check the server is reachable: `<url>/health` should show `{"ok":true,...}`.
-- The terminal logs each request (e.g. `POST /api/create` and `✔ Room ABCDE created`).
-- If the room isn't created, the page now shows an error message explaining why.
-- To let teammates join: Ports tab → port 3000 → Port Visibility → Organization or Public.
+Opening `index.html` directly (file://) runs **offline mode** with Quick Solo and local bot rooms.
 
-## Customise
-Edit the `SCENARIOS` array at the top of `server.js`.
+## Controls
+| Desktop | Mobile |
+|---|---|
+| WASD / Arrows: move | Left stick: move |
+| Mouse: aim, Click / Space: fire | Right stick: aim and fire |
+| M: mute, Q / E: switch spectate target | |
+
+## How it works
+- The room **host's browser is authoritative**. It runs the bots, hits, zone damage and the win check, then broadcasts 20 Hz snapshots and events. Each client sends its own position and shots at 30 Hz.
+- `server.js` only routes messages between players in a room. Rooms close when the host leaves.
+- Tune gameplay in the `CONFIG` block at the top of the script (timers, damage, speeds, bot range).
