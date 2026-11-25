@@ -357,20 +357,19 @@ const G = {
    NetworkManager — WebSocket relay (host-authoritative rooms)
    ============================================================================= */
 const NetworkManager = {
-  ws: null, online: false, reason: '', connecting: null, waiters: [], retryT: null,
-  url() {
-    const custom = QS.get('server'); if (custom) return custom;
-    return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + location.pathname.replace(/[^/]*$/, '') + 'ws';
-  },
-  isOpen() { return !!(this.ws && this.ws.readyState === 1); },
+  ws: null, mode: null, online: false, reason: '', connecting: null, waiters: [], retryT: null, gen: 0,
+  cid: null, outQ: [], flushing: false, helloRes: null, pingT: null,
+  base() { return location.pathname.replace(/[^/]*$/, ''); },
+  wsUrl() { return QS.get('server') || ((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + this.base() + 'ws'); },
+  isOpen() { return this.online; },
   // Connect (or reuse an in-flight attempt). Resolves true/false and sets this.reason on failure.
   connect() {
-    if (this.isOpen()) return Promise.resolve(true);
+    if (this.online) return Promise.resolve(true);
     if (this.connecting) return this.connecting;
     this.connecting = this._connect().then(ok => {
       this.connecting = null; this.online = ok; UIController.setConn(ok, this.reason);
       clearTimeout(this.retryT);
-      if (!ok && !G.netRoom) this.retryT = setTimeout(() => this.connect(), 4000);   // keep retrying quietly while in menus
+      if (!ok && !G.netRoom) this.retryT = setTimeout(() => this.connect(), 6000);   // retry quietly while in menus
       return ok;
     });
     return this.connecting;
@@ -380,33 +379,104 @@ const NetworkManager = {
     if (location.protocol === 'file:' && !QS.get('server')) { this.reason = 'Opened as a file — run "node server.js" and open the server URL for multiplayer.'; return false; }
     if (!QS.get('server')) {
       try {
-        const r = await fetch('health', { cache: 'no-store', credentials: 'include' });
+        const r = await fetch(this.base() + 'health', { cache: 'no-store', credentials: 'include' });
         const txt = await r.text(); let j = null; try { j = JSON.parse(txt); } catch (_) {}
         if (!j) { this.reason = r.redirected || /<html/i.test(txt) ? 'The page was redirected (usually a GitHub/Codespaces sign-in). Reload, sign in if asked, and try again.' : `Server health check failed (HTTP ${r.status}).`; return false; }
         if (!j.ringRoyale) { this.reason = 'Port 3000 is running a different server (probably the old quiz game). Stop it with Ctrl+C and run the Ring Royale server.js.'; return false; }
       } catch (_) { this.reason = 'Cannot reach the server. Is "node server.js" running?'; return false; }
     }
+    const force = QS.get('transport');
+    if (force !== 'http' && !this.wsBlocked) {
+      if (await this.tryWs()) return true;
+      this.wsBlocked = true;            // don't keep opening sockets that the network silently blocks
+    }
+    if (QS.get('server')) { this.reason = this.reason || 'WebSocket server unreachable.'; return false; }
+    return this.tryHttp();
+  },
+
+  /* --- Transport 1: WebSocket, verified by a hello round-trip --- */
+  tryWs() {
     return new Promise(resolve => {
-      let done = false; const fin = (v, why) => { if (!done) { done = true; if (!v && why) this.reason = why; resolve(v); } };
-      let ws;
-      try { ws = new WebSocket(this.url()); } catch (e) { return fin(false, 'WebSocket blocked: ' + e.message); }
-      this.ws = ws;
-      const to = setTimeout(() => { fin(false, 'The live connection timed out — the network or port forwarding may be blocking WebSockets.'); try { ws.close(); } catch (_) {} }, 5000);
-      ws.onopen = () => { clearTimeout(to); fin(true); };
-      ws.onerror = () => {};
-      ws.onclose = () => {
-        clearTimeout(to);
-        fin(false, 'The live connection was refused (WebSocket). Try opening the page in a normal browser tab.');
-        if (this.ws !== ws) return;
-        const was = this.online; this.online = false; this.ws = null;
-        this.waiters.splice(0).forEach(w => w.resolve(null));
-        if (was) UIController.onDisconnected();
-        if (was) { clearTimeout(this.retryT); this.retryT = setTimeout(() => this.connect(), 1500); }   // reconnect after a drop
+      const gen = ++this.gen; let done = false, ws;
+      const fin = ok => {
+        if (done) return; done = true; clearTimeout(to); this.helloRes = null;
+        if (ok) { this.mode = 'ws'; this.startPing(); }
+        else { try { ws && ws.close(); } catch (_) {} if (this.ws === ws) this.ws = null; }
+        resolve(ok);
       };
-      ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } this.onMessage(m); };
+      const to = setTimeout(() => fin(false), 3500);
+      try { ws = new WebSocket(this.wsUrl()); } catch (_) { return fin(false); }
+      this.ws = ws;
+      ws.onopen = () => { this.helloRes = () => fin(true); try { ws.send(JSON.stringify({ t: 'hello' })); } catch (_) { fin(false); } };
+      ws.onerror = () => {};
+      ws.onclose = () => { if (!done) return fin(false); if (gen === this.gen && this.mode === 'ws') this.lost(); };
+      ws.onmessage = e => { if (gen !== this.gen) return; let m; try { m = JSON.parse(e.data); } catch (_) { return; } this.deliver(m); };
     });
   },
-  send(o) { if (this.isOpen()) { this.ws.send(JSON.stringify(o)); return true; } return false; },
+  startPing() { clearInterval(this.pingT); this.pingT = setInterval(() => { if (this.mode === 'ws') this.send({ t: 'ping' }); }, 15000); },
+
+  /* --- Transport 2: HTTP long-poll (works through buffering proxies) --- */
+  async tryHttp() {
+    try {
+      const r = await fetch(this.base() + 'rt/open', { method: 'POST', cache: 'no-store', credentials: 'include' });
+      const j = await r.json(); if (!j.cid) throw new Error('no id');
+      this.cid = j.cid;
+    } catch (_) { this.reason = 'Could not open the multiplayer connection (WebSocket and HTTP fallback both failed).'; return false; }
+    this.mode = 'http'; this.outQ = []; this.flushing = false;
+    const gen = ++this.gen; this.pollLoop(gen);
+    const ok = await new Promise(resolve => {
+      const t = setTimeout(() => { this.helloRes = null; resolve(false); }, 5000);
+      this.helloRes = () => { clearTimeout(t); this.helloRes = null; resolve(true); };
+      this.outQ.push({ t: 'hello' }); this.flush();
+    });
+    if (!ok) { this.gen++; this.mode = null; this.reason = 'The HTTP fallback connection did not respond.'; }
+    return ok;
+  },
+  async pollLoop(gen) {
+    let fails = 0;
+    while (gen === this.gen && this.mode === 'http') {
+      try {
+        const r = await fetch(this.base() + 'rt/poll?cid=' + this.cid, { cache: 'no-store', credentials: 'include' });
+        if (r.status === 410) throw new Error('gone');
+        if (!r.ok) throw new Error('http ' + r.status);
+        const arr = await r.json(); fails = 0;
+        if (gen !== this.gen) return;
+        for (const m of arr) this.deliver(m);
+      } catch (e) {
+        if (gen !== this.gen) return;
+        if (e.message === 'gone' || ++fails >= 3) { this.lost(); return; }
+        await sleep(400);
+      }
+    }
+  },
+  flush() {
+    if (this.flushing || !this.outQ.length || this.mode !== 'http') return;
+    this.flushing = true;
+    const batch = this.outQ.splice(0);
+    fetch(this.base() + 'rt/send?cid=' + this.cid, { method: 'POST', cache: 'no-store', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(batch) })
+      .catch(() => {}).finally(() => { this.flushing = false; if (this.outQ.length) this.flush(); });
+  },
+
+  /* --- shared --- */
+  lost() {
+    const was = this.online;
+    this.gen++; this.online = false; this.mode = null; clearInterval(this.pingT);
+    try { this.ws && this.ws.close(); } catch (_) {} this.ws = null;
+    this.waiters.splice(0).forEach(w => w.resolve(null));
+    if (was) UIController.onDisconnected();
+    clearTimeout(this.retryT); this.retryT = setTimeout(() => this.connect(), 1500);
+  },
+  deliver(m) {
+    if (m.t === 'hello') { if (this.helloRes) this.helloRes(); return; }
+    this.onMessage(m);
+  },
+  send(o) {
+    if (!this.online) return false;
+    if (this.mode === 'ws' && this.ws && this.ws.readyState === 1) { this.ws.send(JSON.stringify(o)); return true; }
+    if (this.mode === 'http') { this.outQ.push(o); if (this.outQ.length > 400) this.outQ.splice(0, this.outQ.length - 400); this.flush(); return true; }
+    return false;
+  },
   // Send a request and wait for one of the reply types (or null on timeout)
   request(msg, types, ms = CONFIG.NET_TIMEOUT_MS) {
     return new Promise(resolve => {
@@ -1022,8 +1092,8 @@ const UIController = {
   setConn(online, reason) {
     $('connDot').style.background = online ? '#34d399' : '#fbbf24';
     $('connDot').style.boxShadow = online ? '0 0 8px #34d399' : 'none';
-    $('connText').textContent = online ? 'Multiplayer server connected' : 'Multiplayer offline — solo & bot rooms still work';
-    $('connBadge').textContent = online ? 'ONLINE' : 'OFFLINE';
+    $('connText').textContent = online ? (NetworkManager.mode === 'http' ? 'Multiplayer connected (proxy-safe mode)' : 'Multiplayer server connected') : 'Multiplayer offline — solo & bot rooms still work';
+    $('connBadge').textContent = online ? (NetworkManager.mode === 'http' ? 'ONLINE · HTTP' : 'ONLINE · WS') : 'OFFLINE';
     const help = $('connHelp'); help.textContent = online ? '' : (reason || ''); help.classList.toggle('hidden', online || !reason);
     $('inCode').placeholder = online ? 'CODE' : 'CODE (needs server)';
   },
@@ -1049,7 +1119,7 @@ const UIController = {
       let ok = await NetworkManager.connect();
       let reply = ok ? await NetworkManager.request({ t: 'create' }, ['created', 'err']) : null;
       if (ok && !reply) {                                   // socket looked open but no answer — reconnect once and retry
-        try { NetworkManager.ws && NetworkManager.ws.close(); } catch (_) {}
+        NetworkManager.lost(); clearTimeout(NetworkManager.retryT);
         await sleep(300);
         ok = await NetworkManager.connect();
         reply = ok ? await NetworkManager.request({ t: 'create' }, ['created', 'err']) : null;

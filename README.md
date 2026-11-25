@@ -1,4 +1,4 @@
-# ⭕ Ring Royale — 2D Neon Battle Royale (v1.1)
+# ⭕ Ring Royale — 2D Neon Battle Royale (v1.2)
 
 ## Run
     node server.js            # Node 18+, no npm install
@@ -19,3 +19,9 @@ Ports tab → port 3000 → Port Visibility → Organization. Then Create Room �
 
 ## Controls
 WASD/Arrows move · Mouse aim · Click/Space fire · M mute · Q/E switch who you're spectating · Mobile: two on-screen sticks
+
+## Connection modes (v1.2)
+The menu badge shows how you're connected:
+- **ONLINE · WS**: WebSocket (fastest)
+- **ONLINE · HTTP**: proxy-safe fallback, used automatically when a network or proxy blocks WebSocket traffic
+You can force the fallback with `/?transport=http`. The server log only counts real players ("✔ player online via …").
